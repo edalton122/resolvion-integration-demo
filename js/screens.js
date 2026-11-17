@@ -96,8 +96,7 @@ window.Screens = (function () {
     frame(opt.role || "ops", lx("Recovery Platform", PLAT_TABS, active, body, { kind: "admin", tag: "New platform \u00b7 Azure", avatar: opt.avatar || "AD", toast: opt.toast, bell: !!opt.toast }), { device: "laptop", clock: opt.clock });
 
   const vehicleLine = `${D.vehicle.year} ${D.vehicle.make} ${D.vehicle.model} \u00b7 ${D.vehicle.color}`;
-  const PII = ["J Doe", "Mission Inn Ave", "Riverside CA"];
-  const markPII = (s) => PII.reduce((t, p) => t.split(p).join(`<mark class="rs-pii">${p}</mark>`), esc(s));
+  const markPII = (s) => A.piiTerms.reduce((t, p) => t.split(esc(p)).join(`<mark class="rs-pii">${esc(p)}</mark>`), esc(s));
 
   function lifecyclePath(upto) {
     const ms = D.milestones.slice(0, 8);
@@ -128,11 +127,11 @@ window.Screens = (function () {
       if (st === 0)
         return plat("Queue", `${pageHead("var(--brand)", SVG.doc, "Intake queue", "New assignments", btn("Refresh"), "50,000+ assignments a month \u00b7 every lender format")}${card("Today", queue, { right: "4 of 1,612" })}`);
       const head = pageHead("var(--brand)", SVG.car, `Assignment \u00b7 ${D.lender.name}`, A.id, st === 1 ? btn("Normalize note", tap, "brand") : st === 2 ? btn("Create assignment", tap, "brand") : btn("Open case"), esc(vehicleLine));
-      const raw = card("Lender note (raw)", `<p class="rs-note">${st === 1 ? markPII(A.rawNote) : esc(A.rawNote)}</p>${st === 1 ? `<div class="rs-hint">${SVG.shield} 3 borrower PII fields detected. Agent Fabric policy routes this note to the on-site LLM only.</div>` : ""}`, { right: `${D.lender.id} \u00b7 via API` });
+      const raw = card("Lender note (raw)", `<p class="rs-note">${st === 1 ? markPII(A.rawNote) : esc(A.rawNote)}</p>${st === 1 ? `<div class="rs-hint">${SVG.shield} ${A.piiTerms.length} borrower identifiers detected. Policy routes this note to the on-site model only.</div>` : ""}`, { right: `${D.lender.id} \u00b7 system-to-system` });
       const N = A.normalized;
       const norm = card(
-        "Normalized by on-site LLM",
-        kv([["Priority", N.priority], ["Last known", N.last_known], ["Place of employment", N.place_of_employment], ["Contact restriction", `<b class="rs-warn">${esc(N.contact_restriction)}</b>`], ["Hold condition", N.hold_condition], ["Excluded", N.exclusions]]) +
+        "Normalized by the on-site model",
+        kv([["Vehicle", N.vehicle], ["Location hints", N.location_hints], ["Contact restriction", `<b class="rs-warn">${esc(N.contact_restriction)}</b>`], ["Personal property", N.personal_property], ["Hold condition", N.hold_condition], ["Escalation", N.escalation]]) +
           `<div class="rs-chips">${pill("PII stayed on-site", "ok")}${pill("0 external calls", "ok")}${pill("812 tokens")}</div>`,
         { right: "notes-normalize-papi" }
       );
@@ -157,14 +156,16 @@ window.Screens = (function () {
         cells: [`<code>${f.code}</code>`, esc(f.label), esc(f.amt), i === 0 ? (st >= 2 ? pill("Synced", "ok") : st >= 1 ? pill("Posted", "new") : pill("Draft")) : pill(st >= 3 ? "Synced" : "Draft", st >= 3 ? "ok" : "")],
         cls: i === 0 && st <= 1 ? "rs-new" : "",
       }));
+      const I = D.invoice;
       const erp = card(
-        "Legacy ERP \u00b7 AR_LINE",
-        table(["AR_ID", "Code", "Assignment", "Source"], st >= 2 ? [{ cells: ["AR-9917204", "REC-FEE", "RSV-26-0479915", "MuleSoft \u00b7 2.3 s"], cls: "rs-in" }, { cells: ["AR-9917203", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }] : [{ cells: ["AR-9917203", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }]),
-        { right: "SQL Server \u00b7 accounting" }
+        `Legacy ERP \u00b7 client invoice ${I.id}`,
+        table(["Line", "Code", "Assignment", "Source"], st >= 2 ? [{ cells: ["14", "REC-FEE", "RSV-26-0479915", "MuleSoft \u00b7 2.3 s"], cls: "rs-in" }, { cells: ["13", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }] : [{ cells: ["13", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }]) +
+          `<div class="rs-chips">${I.next.map((n) => `<span class="rs-pill next">${esc(n)} \u00b7 next</span>`).join("")}</div>`,
+        { right: `${I.lender} \u00b7 SQL Server` }
       );
       const action = st === 0 ? btn("Post fee line", tap, "brand") : st === 1 ? btn("Sync to legacy ERP", tap, "brand") : tap ? btn("Continue", tap, "brand") : "";
-      return plat("Billing", `${pageHead("var(--brand)", SVG.ledger, "Fee lines \u00b7 RSV-26-0479915", "Recovered overnight", action, "Amounts are sample values")}<div class="rs-grid2">${card("New platform \u00b7 fee lines", table(["Code", "Line", "Amount", "Status"], lines))}${erp}</div>`, {
-        toast: st >= 2 ? toast("success", "Fee line synced to the legacy ERP", "Azure \u2192 assignment-sync-papi \u2192 AR_LINE \u00b7 2.3 s") : "",
+      return plat("Billing", `${pageHead("var(--brand)", SVG.ledger, "Fee lines \u00b7 RSV-26-0479915", "Recovered overnight", action, "One way: new platform \u2192 legacy ERP \u00b7 amounts are sample values")}<div class="rs-grid2">${card("New platform \u00b7 fee lines", table(["Code", "Line", "Amount", "Status"], lines))}${erp}</div>`, {
+        toast: st >= 2 ? toast("success", "Fee line added to the client invoice in the legacy ERP", `Azure \u2192 assignment-sync-papi \u2192 ${I.id} \u00b7 2.3 s`) : "",
       });
     },
 
@@ -185,7 +186,7 @@ window.Screens = (function () {
       const res = st >= 1
         ? card("Last night \u00b7 2:00 AM", table(["Check", "Azure", "Legacy ERP", "Result"], [{ cells: ["Fee lines", "18,204", "18,204", pill("Match", "ok")] }, { cells: ["Fee total (sample)", "1,904,220.50", "1,904,220.50", pill("Match", "ok")] }, { cells: ["Assignments open", "212,880", "212,880", pill("Match", "ok")] }]))
         : card("Reconciliation", `<p class="rs-muted">Runs nightly at 2:00 AM. Compares every fee line and assignment status between the new platform and the legacy ERP.</p>`);
-      return plat("Reconciliation", `${pageHead("var(--brand)", SVG.ledger, "Azure \u2194 legacy ERP", "Nightly reconciliation", st === 0 ? btn("Run reconciliation", tap, "brand") : btn("View lineage"))}${res}`);
+      return plat("Reconciliation", `${pageHead("var(--brand)", SVG.ledger, "Azure \u2192 legacy ERP", "Nightly reconciliation", st === 0 ? btn("Run reconciliation", tap, "brand") : btn("View lineage"))}${res}`);
     },
 
     dispatch(st, tap) {

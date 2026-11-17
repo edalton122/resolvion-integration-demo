@@ -2473,7 +2473,8 @@ h1, h2, h3, .tk-title, .vg-q, .hv2-h1, .today-page h2, .close-cards b { font-fam
 .lx.admin .lx-brand b { font-family: var(--head); }
 .rs-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .lx-body > .lx-card + .lx-card, .lx-body > .lx-ph + .lx-card, .lx-body > .rs-grid2 + .lx-card { margin-top: 10px; }
-.rs-note { margin: 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.55; color: #2b3640; background: #f6f8fa; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.rs-pill.next { background: transparent; color: #8a949e; border: 1px dashed #b8c0c8; font-weight: 600; }
+.rs-note { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.55; color: #2b3640; background: #f6f8fa; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
 .rs-pii { background: #fde2e3; color: var(--alert); border-radius: 3px; padding: 0 2px; }
 .rs-hint { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 12px; color: var(--brand-h); background: var(--brand-tint); border-radius: 6px; padding: 7px 10px; }
 .rs-hint.err { color: #8a1c1c; background: #fdecec; }

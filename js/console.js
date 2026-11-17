@@ -154,7 +154,8 @@ window.Console = (function () {
     svg.appendChild(edgeLayer);
     spec.edges.forEach(([a, b, opt = {}]) => {
       const A = nodeMap[a], B = nodeMap[b];
-      const x1 = A.x + A.w, y1 = A.y + A.h / 2, x2 = B.x, y2 = B.y + B.h / 2;
+      /* opt.left: the target sits to the left of the source (data flowing right to left). */
+      const x1 = opt.left ? A.x : A.x + A.w, y1 = A.y + A.h / 2, x2 = opt.left ? B.x + B.w : B.x, y2 = B.y + B.h / 2;
       let d;
       if (opt.down) {
         const ax = A.x + A.w / 2, bx = B.x + B.w / 2;

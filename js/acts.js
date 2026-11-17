@@ -7,14 +7,14 @@ window.Acts = (function () {
   const chapters = [
     { id: "hero",  n: "",  title: "Overview",        question: "",  tip: "Story overview and cast" },
     { id: "today", n: "",  title: "Today",           question: "",  tip: "Today vs. with Salesforce" },
-    { id: "1",     n: "1", title: "Intake",          question: "Can every lender\u2019s assignment become one record, without borrower data leaving our walls?", tip: "Per-lender intake, on-site normalization, one canonical assignment in both platforms" },
-    { id: "2",     n: "2", title: "MVP bridge",      question: "Can the new platform and the legacy ERP stay in sync for accounting through MVP?", tip: "Two-way sync, quarantine and retry, reconciliation and lineage" },
+    { id: "1",     n: "1", title: "Intake",          question: "Can every lender\u2019s assignment become one record, without borrower data leaving our hands?", tip: "Per-lender intake, on-site normalization, one canonical assignment in both platforms" },
+    { id: "2",     n: "2", title: "MVP bridge",      question: "How do old and new stay in sync until MVP?", tip: "Azure \u2192 legacy ERP for accounting, quarantine and retry, nightly reconciliation" },
     { id: "3",     n: "3", title: "Holds",           question: "Will a hold reach the truck before the vehicle is recovered?", tip: "Scorecard + distance agent selection; holds delivered in seconds" },
     { id: "4",     n: "4", title: "Recovery",        question: "Does a recovery reach the lender, accounting and reporting inside 4 hours?", tip: "Photos, condition report and inventory submitted once; fees and status flow on" },
-    { id: "5",     n: "5", title: "Borrower call",   question: "Can borrowers get answers 24/7 without adding headcount or compliance risk?", tip: "Fin on governed MuleSoft APIs, with disclosures and escalation" },
-    { id: "6",     n: "6", title: "Traffic cop",     question: "Can we control which model runs, what it costs, and where the data goes?", tip: "Agent Fabric routing, per-lender policy and token spend" },
-    { id: "7",     n: "7", title: "Insights",        question: "Will leadership actually open the dashboards?", tip: "Player-card exec scorecards with Tableau Agent; digests for view-only users" },
-    { id: "8",     n: "8", title: "Agent scorecard", question: "Can recovery agents compete on performance?", tip: "Tableau Embedded scorecards with row-level security" },
+    { id: "5",     n: "5", title: "Borrower call",   question: "Can borrowers get answers 24/7 without adding headcount or compliance risk?", tip: "Fin calls governed MuleSoft APIs through data connectors, with disclosures and escalation" },
+    { id: "6",     n: "6", title: "Traffic cop",     question: "Who\u2019s the traffic cop for our models and our spend?", tip: "Agent Fabric Model Proxy, Model Wallet and per-lender policy, alongside your orchestrator" },
+    { id: "7",     n: "7", title: "Insights",        question: "Can exec views be concise and easy to see, not a spreadsheet?", tip: "Player-card exec views built by prompt: Tableau MCP, or Studio with Tableau+" },
+    { id: "8",     n: "8", title: "Agent scorecard", question: "Can we show agents where their strengths and weaknesses are?", tip: "Tableau Embedded player cards with row-level security" },
     { id: "arch",  n: "",  title: "Architecture",    question: "",  tip: "End-to-end reference architecture" },
     { id: "wrap",  n: "",  title: "Recap",           question: "",  tip: "The whole story in one view" },
     { id: "close", n: "",  title: "Next Steps",      question: "",  tip: "Roadmap and answers to the eight questions" },
@@ -51,36 +51,36 @@ window.Acts = (function () {
     /* ---------- Chapter 1: Intake */
     {
       id: "1.1", act: "1", short: true, title: "A lender assignment becomes one canonical record",
-      desc: `Lakeshore Auto Finance places assignment ${A.id} through its API, with a free-text note full of borrower details. MuleSoft receives it, sends the note to Resolvion\u2019s on-site model to be normalized, maps everything into one canonical assignment and writes it to both the new platform and the legacy ERP.`,
-      why: "Each lender\u2019s format is handled once, centrally. Borrower PII in the note never leaves Resolvion, and nobody keys the assignment twice.",
+      desc: `Lakeshore Auto Finance places assignment ${A.id} system-to-system, with a free-text note in its own shorthand. MuleSoft receives it, sends the note to Resolvion\u2019s on-site model to be deciphered and normalized, maps everything into one canonical assignment, writes it to the new platform and carries it into the legacy ERP.`,
+      why: "Each lender\u2019s format is handled once, centrally. Borrower identifiers in the note never leave Resolvion\u2019s hands, and nobody keys the assignment twice.",
       powered: ["MuleSoft Anypoint", "DataWeave", "Agent Fabric policy"],
       async run(x) {
         await sketch(x, {
           clock: "16:14:02",
           left: (tap, i = 0) => S.platform({ view: "intake", stage: i, tap }),
-          intro: ["client-intake-sapi \u00b7 POST /assignments \u00b7 lender LAF-2207 \u00b7 channel API", "A new assignment arrives from Lakeshore Auto Finance"],
+          intro: ["client-intake-sapi \u00b7 POST /assignments \u00b7 lender LAF-2207 \u00b7 channel system-to-system", "A new assignment arrives from Lakeshore Auto Finance"],
           beats: [
-            { tap: "open", cap: "A new assignment just landed in the intake queue. Click it to open the lender\u2019s raw note.", path: ["lender", "s-intake", "p-intake"], tag: ["s-intake", "202 Accepted \u00b7 41 ms"], eng: "client-intake-sapi \u00b7 202 Accepted \u00b7 lender format LAF-v3 \u00b7 handed to notes-normalize-papi", exec: "MuleSoft accepts the assignment in the lender\u2019s own format" },
-            { tap: "normalize", cap: "The note holds borrower PII. Click Normalize: policy sends it to the on-site LLM, never outside.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site \u00b7 0 external", "new", true], eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 route \u2192 onprem-llm \u00b7 tokens 812 \u00b7 no marginal cost", exec: "The note is normalized on Resolvion\u2019s own servers" },
-            { tap: "write", cap: "Click Create assignment. One canonical record goes to both platforms.", path: ["p-intake", "p-sync", "s-azure", "azure"], tag: ["azure", "INSERT \u00b7 1 assignment"], eng: "assignment-sync-papi \u00b7 canonical Assignment v1 \u00b7 upsert azure-platform-sapi + legacy-erp-sapi", exec: "Written once, to the new platform and the legacy ERP" },
+            { tap: "open", cap: "A new assignment just landed in the intake queue. Click it to open the lender\u2019s raw note.", path: ["lender", "s-intake", "p-intake"], tag: ["s-intake", "202 Accepted \u00b7 41 ms"], eng: "client-intake-sapi \u00b7 202 Accepted \u00b7 lender format LAF-v3 (1 of dozens, illustrative) \u00b7 handed to notes-normalize-papi", exec: "MuleSoft accepts the assignment in the lender\u2019s own format" },
+            { tap: "normalize", cap: "The note holds borrower identifiers. Click Normalize: policy sends it to the on-site model, never to a cloud model.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site \u00b7 0 cloud calls", "new", true], eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 route \u2192 on-site model \u00b7 tokens 812 \u00b7 6 fields extracted", exec: "The note is normalized on Resolvion\u2019s own hardware" },
+            { tap: "write", cap: "Click Create assignment. One canonical record, in the new platform and the legacy ERP.", path: ["p-intake", "p-sync", "s-azure", "azure"], tag: ["azure", "INSERT \u00b7 1 assignment"], eng: "assignment-sync-papi \u00b7 canonical Assignment v1 \u00b7 azure-platform-sapi INSERT \u00b7 \u2192 legacy-erp-sapi", exec: "Written once, then carried into the legacy ERP" },
           ],
-          clockStrip: [{ l: "Placed to record", v: "1.9 s", state: "ok" }, { l: "PII sent outside", v: "0", state: "ok" }, { l: "Systems written", v: "2", s: "Azure + legacy ERP" }, { l: "Lender formats", v: "1 map each" }],
+          clockStrip: [{ l: "Placed to record", v: "1.9 s", state: "ok" }, { l: "PII sent to cloud", v: "0", state: "ok" }, { l: "Systems updated", v: "2", s: "Azure \u2192 legacy ERP" }, { l: "Lender formats", v: "1 map each" }],
           done: "One canonical assignment, in both platforms, in under two seconds.",
         });
       },
     },
     {
       id: "1.2", act: "1", short: false, title: "Borrower PII stays on-site, by policy",
-      desc: "The routing rule that sent the note to the on-site LLM isn\u2019t code in one app. It\u2019s an Agent Fabric policy that applies to every agent and model call, and every decision is logged.",
-      why: "Lakeshore\u2019s rules say its notes may not leave Resolvion\u2019s environment. The policy enforces that for every caller, not just the one someone remembered to update.",
-      powered: ["MuleSoft Agent Fabric", "On-site LLM", "Audit log"],
+      desc: "The rule that sent the note to the on-site model isn\u2019t code in one app. It\u2019s an Agent Fabric policy that applies to every agent and model call, written once in the Policy Catalog, with an audit trail.",
+      why: "Every client\u2019s rules are different and all of them must be honored. Strict guardrails first: the policy enforces them for every caller, not just the one someone remembered to update.",
+      powered: ["Agent Fabric Policy Catalog", "Model Proxy", "Audit trail"],
       async run(x) {
         await sketch(x, {
           clock: "16:14:03",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Routing policy \u00b7 pii.lender-notes", lines: ["If the payload contains borrower PII \u2192 on-site LLM", "Lender rule LAF-2207: notes may not leave Resolvion", "Every decision logged with caller, model and tokens"], tap, step: i }),
+          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Policy \u00b7 pii.lender-notes", lines: ["If the payload contains borrower identifiers \u2192 on-site model", D.fabric.policy.rule, "Every decision logged with caller, model and tokens"], tap, step: i }),
           beats: [
-            { tap: "next", cap: "Click the policy to see what it matches.", path: ["reg", "fabric"], tag: ["fabric", "match: borrower PII"], eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 detectors ssn, dob, phone, address \u00b7 3 matches", exec: "The policy spots borrower details in the note" },
-            { tap: "next", cap: "Click the decision.", path: ["fabric", "onprem"], tag: ["onprem", "routed \u00b7 on-site"], eng: "agent-fabric \u00b7 decision ROUTE onprem-llm \u00b7 external models blocked for LAF-2207", exec: "So it goes to the on-site model, every time" },
+            { tap: "next", cap: "Click the policy to see what it matches.", path: ["reg", "fabric"], tag: ["fabric", "match: borrower PII"], eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 detectors account, address, location \u00b7 3 matches", exec: "The policy spots borrower details in the note" },
+            { tap: "next", cap: "Click the decision.", path: ["fabric", "onprem"], tag: ["onprem", "routed \u00b7 on-site"], eng: `agent-fabric \u00b7 decision ROUTE on-site model \u00b7 cloud models blocked \u00b7 ${D.fabric.policy.id}`, exec: "So it goes to the on-site model, every time" },
           ],
         });
       },
@@ -104,19 +104,19 @@ window.Acts = (function () {
 
     /* ---------- Chapter 2: MVP bridge */
     {
-      id: "2.1", act: "2", short: true, title: "A fee line posted in Azure appears in the legacy ERP",
-      desc: "A recovery fee is posted for an assignment recovered overnight. MuleSoft moves the fee line from the new Azure platform into the legacy ERP\u2019s accounting tables, in seconds, so billing keeps running on the system it runs on today.",
-      why: "Accounting can\u2019t pause for the MVP. This bridge is built once and reused when the legacy ERP retires, not thrown away.",
-      powered: ["MuleSoft (Azure \u2194 legacy)", "assignment-sync-papi", "Anypoint Monitoring"],
+      id: "2.1", act: "2", short: true, title: "A fee line posted in Azure lands on the client invoice in the legacy ERP",
+      desc: "A recovery fee is posted in the new Azure platform for an assignment recovered overnight. MuleSoft carries the transaction back to the legacy SQL Server ERP, in seconds, where it rolls up onto Lakeshore\u2019s client invoice, so billing keeps running on the system it runs on today.",
+      why: "Accounting can\u2019t pause for the MVP. This bridge is built once and reused when the legacy ERP retires, not thrown away. Agent payables and GL posting can follow on the same APIs.",
+      powered: ["MuleSoft (Azure \u2192 legacy ERP)", "assignment-sync-papi", "Anypoint Monitoring"],
       async run(x) {
         await sketch(x, {
           clock: "17:30:00",
           left: (tap, i = 0) => S.platform({ view: "billing", stage: i, tap }),
           beats: [
             { tap: "post", cap: "Click Post fee line in the new platform.", path: ["azure", "s-azure", "p-sync"], tag: ["s-azure", "fee_line.created"], eng: "azure-platform-sapi \u00b7 event fee_line.created \u00b7 REC-FEE \u00b7 assignment RSV-26-0479915", exec: "The new platform posts a recovery fee" },
-            { tap: "sync", cap: "Click Sync to see it land in the legacy ERP.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", "INSERT AR_LINE \u00b7 1"], eng: "assignment-sync-papi \u00b7 map FeeLine \u2192 AR_LINE \u00b7 legacy-erp-sapi INSERT \u00b7 2.3 s end to end", exec: "The same line appears in the legacy ERP\u2019s accounting" },
+            { tap: "sync", cap: "Click Sync to see it land on the client invoice in the legacy ERP.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", `invoice line \u00b7 ${D.invoice.id}`], eng: `assignment-sync-papi \u00b7 map FeeLine \u2192 client invoice line \u00b7 legacy-erp-sapi INSERT ${D.invoice.id} \u00b7 2.3 s end to end`, exec: "The same line appears on the client invoice in the legacy ERP" },
           ],
-          clockStrip: [{ l: "Azure \u2192 ERP", v: "2.3 s", state: "ok" }, { l: "Lines synced today", n: 1842, v: "{n}" }, { l: "Direction", v: "both ways" }, { l: "Code to throw away", v: "none" }],
+          clockStrip: [{ l: "Azure \u2192 ERP", v: "2.3 s", state: "ok" }, { l: "Lines synced today", n: 1842, v: "{n}", s: "illustrative" }, { l: "Direction", v: "Azure \u2192 legacy" }, { l: "Code to throw away", v: "none" }],
         });
       },
     },
@@ -146,7 +146,7 @@ window.Acts = (function () {
           clock: "10:00:00",
           left: (tap, i = 0) => S.platform({ view: "recon", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click Run reconciliation.", path: ["legacy", "s-legacy", "p-sync"], tag: ["p-sync", "18,204 = 18,204 \u2713"], eng: "assignment-sync-papi \u00b7 nightly recon \u00b7 azure 18,204 lines \u00b7 legacy 18,204 lines \u00b7 0 differences", exec: "Both systems agree, line for line" },
+            { tap: "next", cap: "Click Run reconciliation.", path: ["azure", "s-azure", "p-sync", "s-legacy", "legacy"], tag: ["p-sync", "18,204 = 18,204 \u2713"], eng: "assignment-sync-papi \u00b7 nightly recon \u00b7 azure 18,204 lines \u00b7 legacy 18,204 lines \u00b7 0 differences", exec: "Both systems agree, line for line" },
           ],
         });
       },
@@ -177,7 +177,7 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "18:42:07",
-          left: (tap, i = 0) => S.stub("agent", { app: "Agent app", title: i >= 1 ? "HOLD \u2014 do not recover" : `Case ${A.id} \u00b7 located`, lines: i >= 1 ? ["Lakeshore Auto Finance \u00b7 payment received", "Received 10:42:07 \u00b7 delivered 10:42:11", i >= 2 ? "Acknowledged 10:42:19 \u00b7 on record" : "Tap to acknowledge"] : ["2022 Honda Accord EX \u00b7 Lunar Silver", "Last LPR hit: Riverside, CA \u00b7 6:02 AM", "Status: Active"], tap, step: i, alert: i >= 1 }),
+          left: (tap, i = 0) => S.stub("agent", { app: "Agent app", title: i >= 1 ? "HOLD \u2014 do not recover" : `Case ${A.id} \u00b7 located`, lines: i >= 1 ? ["Lakeshore Auto Finance \u00b7 payment posted", "Received 10:42:07 \u00b7 delivered 10:42:11", i >= 2 ? "Acknowledged 10:42:19 \u00b7 on record" : "Tap to acknowledge"] : ["2022 Honda Accord EX \u00b7 Gray", "Last LPR hit: Riverside, CA \u00b7 6:02 AM", "Do not contact at work"], tap, step: i, alert: i >= 1 }),
           beats: [
             { tap: "hold", cap: "The lender sends a HOLD. Click it to send it down the queue.", path: ["lender", "s-intake", "p-intake", "p-sync", "p-events", "e-agent", "agentapp"], tag: ["agentapp", "HOLD delivered \u00b7 4 s", "new", true], eng: "hold-close-papi \u00b7 lender HLD \u2192 HOLD \u00b7 anypoint-mq hold-events \u00b7 push agent AG-0612 \u00b7 10:42:07 \u2192 10:42:11", exec: "The hold reaches the agent\u2019s phone in 4 seconds" },
             { tap: "ack", cap: "Coastal Recovery acknowledges. Click Acknowledge.", path: ["agentapp", "e-agent", "p-events"], tag: ["p-events", "ACK 10:42:19 \u00b7 audited"], eng: "hold-close-papi \u00b7 ack AG-0612 10:42:19 \u00b7 audit hold.delivered + hold.acknowledged", exec: "Acknowledged and on the record: wrongful repossession prevented" },
@@ -211,9 +211,9 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "10:32:00",
-          left: (tap, i = 0) => S.stub("agent", { app: "Agent app", title: "Recovered \u00b7 submit report", lines: ["12 photos \u00b7 condition report", "Personal property: child car seat, gym bag, sunglasses", "Oceanside lot \u00b7 in storage"], tap, step: i }),
+          left: (tap, i = 0) => S.stub("agent", { app: "Agent app", title: "Recovered \u00b7 submit report", lines: ["12 photos \u00b7 condition report", "Personal property: child seat (flagged by the lender), phone charger", "Oceanside lot \u00b7 in storage"], tap, step: i }),
           beats: [
-            { tap: "next", cap: "Click Submit.", path: ["rdn", "s-rdn", "p-events", "p-sync", "s-azure", "azure"], tag: ["azure", "RECOVERED \u00b7 3h 12m of 4h"], eng: "recovery-event-papi \u00b7 RECOVERED \u00b7 condition_report + 12 photos + 3 property items \u00b7 3h 12m after recovery", exec: "Recovery details arrive inside the 4-hour standard" },
+            { tap: "next", cap: "Click Submit.", path: ["rdn", "s-rdn", "p-events", "p-sync", "s-azure", "azure"], tag: ["azure", "RECOVERED \u00b7 3h 12m of 4h"], eng: "recovery-event-papi \u00b7 RECOVERED \u00b7 condition_report + 12 photos + 2 property items \u00b7 3h 12m after recovery", exec: "Recovery details arrive inside the 4-hour standard" },
           ],
         });
       },
@@ -228,7 +228,7 @@ window.Acts = (function () {
           clock: "10:33:00",
           left: (tap, i = 0) => S.platform({ view: "billing", stage: 2 + i, tap }),
           beats: [
-            { tap: "next", cap: "Click to follow the fee lines.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", "4 fee lines"], eng: "assignment-sync-papi \u00b7 4 FeeLine \u2192 AR_LINE \u00b7 reused bridge", exec: "Fees post to the legacy ERP, over the same bridge" },
+            { tap: "next", cap: "Click to follow the fee lines.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", "4 invoice lines"], eng: `assignment-sync-papi \u00b7 4 FeeLine \u2192 ${D.invoice.id} \u00b7 reused bridge`, exec: "Fees land on the client invoice, over the same bridge" },
             { tap: "next", cap: "And the metrics.", path: ["p-sync", "tab"], tag: ["tab", "SLA metrics updated"], eng: "tableau \u00b7 recovery_sla published \u00b7 report_on_time 3h12m \u2264 4h", exec: "Reporting has it without anyone exporting it" },
           ],
         });
@@ -238,25 +238,25 @@ window.Acts = (function () {
     /* ---------- Chapter 5: Borrower call */
     {
       id: "5.1", act: "5", short: true, title: "\u201cWhere\u2019s my car, and my belongings?\u201d Fin answers",
-      desc: "Friday morning the borrower calls the \u201cIf your car was repossessed\u201d line. Fin verifies identity, finds the vehicle\u2019s lot and hours, schedules a personal-property pickup and reads the required disclosure, using live recovery data from a MuleSoft API.",
-      why: "Routine calls are resolved around the clock without new headcount. Fin uses the same governed APIs, with no new point-to-point code: 76% average resolution rate across Fin customers.",
-      powered: ["Fin (AI service agent)", "borrower-service-eapi", "MuleSoft"],
+      desc: "Friday morning the borrower calls the \u201cIf your car was repossessed\u201d line. Fin verifies identity, finds the vehicle\u2019s lot and hours, schedules pickup of the child seat and reads the required disclosure. It gets live recovery data by calling a MuleSoft Experience API through Fin data connectors, inside a Procedure.",
+      why: "Routine calls are resolved around the clock, deferring headcount. Fin calls the same governed APIs as everything else, with no new point-to-point code: 76% average resolution rate across Fin customers.",
+      powered: ["Fin (AI service agent)", "Fin data connectors", "borrower-service-eapi"],
       async run(x) {
         await sketch(x, {
           clock: "16:05:00",
           left: (tap, i = 0) => S.stub("borrower", { app: "Fin \u00b7 voice", title: "\u201cMy car was repossessed. Where is it?\u201d", lines: ["ID verified (last 4 + ZIP)", "Vehicle at Oceanside lot \u00b7 open 8 AM\u20135 PM", "Pickup scheduled: Thu 9\u201311 AM \u00b7 disclosure read"], tap, step: i }),
           beats: [
-            { tap: "next", cap: "Click to let Fin look up the vehicle.", path: ["fin", "e-borrower", "p-sync", "s-azure", "azure"], tag: ["e-borrower", "GET /vehicle-status \u00b7 masked"], eng: "borrower-service-eapi \u00b7 GET /assignments/{id}/vehicle-status \u00b7 identity verified \u00b7 PII masked in logs", exec: "Fin gets live recovery data through a governed API" },
-            { tap: "next", cap: "Click to schedule the personal-property pickup.", path: ["fin", "e-borrower", "p-sync"], tag: ["p-sync", "pickup booked"], eng: "borrower-service-eapi \u00b7 POST /property-pickups \u00b7 Thu 09:00\u201311:00 \u00b7 Oceanside lot", exec: "Pickup booked, disclosure read, call resolved" },
+            { tap: "next", cap: "Click to let Fin look up the vehicle.", path: ["fin", "e-borrower", "p-sync", "s-azure", "azure"], tag: ["e-borrower", "GET /vehicle-status \u00b7 masked"], eng: "fin data connector get_vehicle_status \u2192 borrower-service-eapi \u00b7 GET /assignments/{id}/vehicle-status \u00b7 identity verified \u00b7 PII masked in logs", exec: "Fin gets live recovery data through a governed API" },
+            { tap: "next", cap: "Click to schedule the personal-property pickup.", path: ["fin", "e-borrower", "p-sync"], tag: ["p-sync", "pickup booked"], eng: "fin data connector book_property_pickup \u2192 borrower-service-eapi \u00b7 POST /property-pickups \u00b7 child seat \u00b7 Thu 09:00\u201311:00 \u00b7 Oceanside lot", exec: "Pickup booked, disclosure read, call resolved" },
           ],
         });
       },
     },
     {
       id: "5.2", act: "5", short: false, title: "A complex call goes to a person, with full context",
-      desc: "A second caller disputes the repossession. Fin recognizes it as out of scope, hands off to a live agent and passes the verified identity, assignment and conversation so far.",
+      desc: "A second caller disputes the repossession. The Fin Procedure branches: disputes are out of scope, so Fin hands off to a person and passes the verified identity, assignment and conversation so far.",
       why: "Escalation rules come from compliance. The person picking up doesn\u2019t start from zero.",
-      powered: ["Fin", "Escalation rules", "MuleSoft"],
+      powered: ["Fin Procedures", "Escalation rules", "MuleSoft"],
       async run(x) {
         await sketch(x, {
           clock: "16:11:00",
@@ -270,14 +270,14 @@ window.Acts = (function () {
     {
       id: "5.3", act: "5", short: false, title: "Disclosures, ID checks and masked logs on every call",
       desc: "Every call follows the scripted disclosures and ID checks, and borrower PII is masked in every MuleSoft log.",
-      why: "Compliance by design: CFPB, FDCPA and GLBA are why masking, scripts and audit matter.",
-      powered: ["Fin", "API Manager PII masking", "Audit log"],
+      why: "Compliance by design: CFPB, FTC, FDCPA, GLBA and UDAAP rules, and your call monitoring program, are why masking, scripts and audit matter.",
+      powered: ["Fin", "Omni Gateway PII masking for logs", "Audit trail"],
       async run(x) {
         await sketch(x, {
           clock: "16:12:00",
-          left: (tap, i = 0) => S.stub("cs", { app: "Customer Service", title: "Call compliance", lines: ["Disclosure read: 100% of calls", "ID verified before any vehicle detail", "PII masked in logs: SSN, DOB, phone"], tap, step: i }),
+          left: (tap, i = 0) => S.stub("cs", { app: "Customer Service", title: "Call compliance", lines: ["Disclosure read: every call (illustrative script)", "ID verified before any vehicle detail", "PII masked in logs: account, address, phone"], tap, step: i }),
           beats: [
-            { tap: "next", cap: "Click to view the log.", path: ["fin", "e-borrower"], tag: ["e-borrower", "ssn ***-**-****"], eng: "api-manager \u00b7 policy pii-masking \u00b7 fields ssn, dob, phone masked before logging", exec: "No borrower PII in the logs" },
+            { tap: "next", cap: "Click to view the log.", path: ["fin", "e-borrower"], tag: ["e-borrower", "account \u2022\u2022\u2022\u2022882"], eng: "omni-gateway \u00b7 pii-masking \u00b7 fields account, address, phone masked before logging", exec: "No borrower PII in the logs" },
           ],
         });
       },
@@ -285,47 +285,48 @@ window.Acts = (function () {
 
     /* ---------- Chapter 6: Traffic cop */
     {
-      id: "6.1", act: "6", short: true, title: "Every task routed to the right model, by policy",
-      desc: "Agent Fabric registers the agents and models Resolvion already runs: the case and order evaluation agents, the notes normalizer on the on-site LLM, Claude, OpenAI, Fin and Tableau Agent. Then it routes each task by policy.",
-      why: "Works with what you\u2019ve built; nothing is replaced. PII goes on-site, code to Claude, general summarization to the cheapest capable model.",
-      powered: ["MuleSoft Agent Fabric", "MCP", "Policy"],
+      id: "6.1", act: "6", short: true, title: "One traffic cop: every request routed to the right model, by policy",
+      desc: "Agent Fabric sits across the orchestrator, agents and models Resolvion already runs, rather than replacing them: the Case Evaluation and Order Evaluation agents, the Notes Normalizer on the on-site model, Claude and OpenAI. Model Proxy routes each request to the right model at the right cost.",
+      why: "Works with your frameworks; nothing is replaced. PII goes on-site, code to Claude, general summarization to the cheapest capable model, and every decision is on the audit trail.",
+      powered: ["Agent Fabric Model Proxy", "Policy Catalog", "AI Platform Scanners"],
       async run(x) {
         await sketch(x, {
           clock: "18:00:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Agent registry \u00b7 7 agents and models", lines: ["Contains borrower PII \u2192 on-site LLM", "Code task \u2192 Claude", "General summarization \u2192 cheapest capable model"], tap, step: i }),
+          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: `Registry \u00b7 ${D.fabric.agents.length} agents \u00b7 ${D.fabric.models.length} models`, lines: ["Contains borrower PII \u2192 on-site model", "Code task \u2192 Claude", "General summarization, no PII \u2192 cheapest capable model"], tap, step: i }),
           beats: [
-            { tap: "next", cap: "Click a task with borrower PII.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site"], eng: "agent-fabric \u00b7 case-evaluation \u00b7 PII detected \u2192 onprem-llm", exec: "Sensitive work stays on-site" },
-            { tap: "next", cap: "Click a general summarization task.", path: ["reg", "fabric", "ext"], tag: ["ext", "\u2192 cheapest capable"], eng: "agent-fabric \u00b7 order-evaluation summary \u00b7 no PII \u00b7 route \u2192 lowest-cost capable model", exec: "Everything else goes to the cheapest model that can do it" },
+            { tap: "next", cap: "Click a request with borrower PII.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site"], eng: "model-proxy \u00b7 case-evaluation-agent \u00b7 PII detected \u2192 on-site model", exec: "Sensitive work stays on-site" },
+            { tap: "next", cap: "Click a general summarization request.", path: ["reg", "fabric", "ext"], tag: ["ext", "\u2192 cheapest capable"], eng: "model-proxy \u00b7 order-evaluation-agent summary \u00b7 no PII \u00b7 route \u2192 lowest-cost capable model", exec: "Everything else goes to the cheapest model that can do it" },
           ],
         });
       },
     },
     {
-      id: "6.2", act: "6", short: true, title: "Token spend by agent and model, with a budget alert",
-      desc: "One view of token spend across every agent and model, with daily budgets. The Order Evaluation agent crosses 86% of its daily budget and the owner is alerted before it overruns.",
-      why: "Spend is visible per agent, per model, every day. The on-site LLM carries most of the volume at no marginal cost.",
-      powered: ["MuleSoft Agent Fabric", "Token observability", "Budget alerts"],
+      id: "6.2", act: "6", short: true, title: "Token spend by agent and model, capped by a Model Wallet",
+      desc: `The FinOps Dashboard shows token spend across every agent and model. Each agent draws from a Model Wallet budget: the ${D.fabric.wallet.agent} has used ${D.fabric.wallet.used}% of today\u2019s and is capped at 100%, not allowed to overrun.`,
+      why: "Cost control first. Spend is visible per agent and per model every day, budgets are enforced rather than reviewed after the fact, and the on-site model carries most of the volume at no marginal cost.",
+      powered: ["Agent Fabric FinOps Dashboard", "Model Wallet", "Model Proxy"],
       async run(x) {
         await sketch(x, {
           clock: "18:05:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Token spend \u00b7 today", lines: ["On-site LLM 58% of tokens \u00b7 no marginal cost", "OpenAI 28% \u00b7 Claude 14%", "Alert: Order Evaluation at 86% of daily budget"], tap, step: i, alert: i >= 1 }),
+          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "FinOps \u00b7 token spend today (illustrative)", lines: ["On-site model 58% of tokens \u00b7 no marginal cost", "OpenAI 28% \u00b7 Claude 14%", `${D.fabric.wallet.agent}: ${D.fabric.wallet.used}% of Model Wallet budget \u00b7 capped at 100%`], tap, step: i, alert: i >= 2 }),
           beats: [
-            { tap: "next", cap: "Click the spend view.", path: ["reg", "fabric"], tag: ["fabric", "70.6M tokens today"], eng: "agent-fabric \u00b7 spend \u00b7 by agent \u00d7 model \u00b7 70.6M tokens \u00b7 58% on-site", exec: "One spend view across every model" },
+            { tap: "next", cap: "Click the spend view.", path: ["reg", "fabric"], tag: ["fabric", "70.6M tokens today"], eng: "finops \u00b7 spend by agent \u00d7 model \u00b7 70.6M tokens \u00b7 58% on-site", exec: "One spend view across every model" },
+            { tap: "next", cap: "Click the Order Evaluation agent\u2019s wallet.", path: ["fabric", "ext"], tag: ["fabric", `wallet ${D.fabric.wallet.used}% \u00b7 cap 100%`, "warn", true], eng: `model-wallet \u00b7 order-evaluation-agent \u00b7 ${D.fabric.wallet.used}% of daily budget \u00b7 hard cap at 100%`, exec: "Budgets are enforced, not just reported" },
           ],
         });
       },
     },
     {
-      id: "6.3", act: "6", short: false, title: "A lender\u2019s data rule blocks an external call",
-      desc: "An agent tries to send Lakeshore data to an external model. The per-lender policy blocks it and reroutes to the on-site LLM.",
-      why: "Each lender has different rules, and all must be honored. Enforced centrally, for every agent.",
-      powered: ["Agent Fabric policy", "Per-lender rules", "Audit"],
+      id: "6.3", act: "6", short: false, title: "A lender\u2019s data rule blocks a cloud model call",
+      desc: "An agent tries to send Lakeshore borrower data to a cloud model. The per-lender policy blocks it and reroutes the request to the on-site model.",
+      why: "Every client\u2019s rules are different, and all must be honored. Written once in the Policy Catalog, enforced for every agent, with an audit trail.",
+      powered: ["Agent Fabric Policy Catalog", "Omni Gateway", "Audit trail"],
       async run(x) {
         await sketch(x, {
           clock: "18:08:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Policy decision", lines: ["Caller: Case Evaluation agent", "Lender LAF-2207: data may not leave on-prem", "Decision: BLOCK external \u00b7 reroute on-site"], tap, step: i, alert: i >= 1 }),
+          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Policy decision", lines: ["Caller: Case Evaluation Agent", D.fabric.policy.rule, "Decision: BLOCK cloud model \u00b7 reroute on-site"], tap, step: i, alert: i >= 1 }),
           beats: [
-            { tap: "next", cap: "Click the request.", path: ["reg", "fabric", "ext"], err: true, tag: ["ext", "blocked \u00b7 LAF-2207 rule", "err"], eng: "agent-fabric \u00b7 policy lender.LAF-2207.no-external \u00b7 DENY \u2192 reroute onprem-llm", exec: "Lakeshore\u2019s rule holds, automatically" },
+            { tap: "next", cap: "Click the request.", path: ["reg", "fabric", "ext"], err: true, tag: ["ext", "blocked \u00b7 lender rule", "err"], eng: `policy ${D.fabric.policy.id} \u00b7 DENY cloud model \u00b7 reroute \u2192 on-site model`, exec: "Lakeshore\u2019s rule holds, automatically" },
           ],
         });
       },
@@ -333,24 +334,24 @@ window.Acts = (function () {
 
     /* ---------- Chapter 7: Insights */
     {
-      id: "7.1", act: "7", short: true, title: "A player-card exec scorecard, built with Tableau Agent",
-      desc: "Devon asks Tableau Agent for an exec view of agent SLAs and recovery performance. On governed data from the MuleSoft flows, it drafts a player-card style scorecard instead of a red/green grid.",
-      why: "Polished exec views in hours, not a week, on numbers that match billing. Full-dashboard generation is on the Tableau roadmap.",
-      powered: ["Tableau Cloud", "Tableau Agent", "Tableau MCP"],
+      id: "7.1", act: "7", short: true, title: "A player-card exec scorecard, built by prompt",
+      desc: "Devon asks for an exec view of agent SLAs and recovery performance. On governed data from the MuleSoft flows, a player-card style scorecard is drafted by prompt: concise and easy to see, instead of a flat grid of red and green dots.",
+      why: "Exec views in hours instead of waiting on one or two Desktop builders, on the same numbers billing uses. Build it with Claude through the free Tableau MCP, or in Tableau Studio with Tableau Agent (requires Tableau+).",
+      powered: ["Tableau Cloud", "Tableau MCP", "Tableau Studio (Tableau+)"],
       async run(x) {
         await sketch(x, {
           clock: "21:00:00",
           left: (tap, i = 0) => S.stub("data", { app: "Tableau Cloud", title: "Exec scorecard \u00b7 agent network", lines: ["Acceptance inside 2 hrs: 94%", "Condition report inside 4 hrs: 96%", "Recoveries this month: 10,400+ (illustrative)"], tap, step: i }),
           beats: [
-            { tap: "next", cap: "Click Ask Tableau Agent.", path: ["p-sync", "tab"], tag: ["tab", "governed \u00b7 RLS"], eng: "tableau \u00b7 agent prompt \u2192 published data source agent_sla (certified) \u00b7 player-card layout", exec: "An exec scorecard drafted on governed data" },
+            { tap: "next", cap: "Click to build the view by prompt.", path: ["p-sync", "tab"], tag: ["tab", "governed \u00b7 RLS"], eng: "tableau-mcp \u00b7 prompt \u2192 published data source agent_sla (certified) \u00b7 player-card layout", exec: "An exec scorecard drafted on governed data" },
           ],
         });
       },
     },
     {
       id: "7.2", act: "7", short: false, title: "Monday\u2019s digest comes to the leader",
-      desc: "Leaders who only view get a Monday digest of what changed: the metrics that moved and why.",
-      why: "About 90% of Tableau users only view. The insight comes to them.",
+      desc: "Leaders who only view get a Monday digest of what changed: the metrics that moved and why. Tableau Pulse is already part of your licensing and ready to turn on.",
+      why: "About 90% of Tableau users only view, and execs want the data back concise. The insight comes to them.",
       powered: ["Tableau Pulse", "Tableau Cloud"],
       async run(x) {
         await sketch(x, {
@@ -366,13 +367,13 @@ window.Acts = (function () {
     /* ---------- Chapter 8: Agent scorecard */
     {
       id: "8.1", act: "8", short: true, title: "Coastal Recovery\u2019s scorecard: rating 88, rank 4 of 37",
-      desc: "In the agent portal, Coastal Recovery Co. sees a FIFA-style card: overall rating, acceptance time, update cadence, the 4-hour report SLA and recovery rate, ranked against anonymized peers.",
-      why: "Better agents get more work: better results, lower risk. Simple enough to read on a phone in the truck.",
+      desc: "Coastal Recovery Co. signs in to the agent portal and sees a FIFA-style player card: an overall rating dial plus acceptance time, update cadence, the 4-hour report SLA, recovery rate and coverage, with strengths and weaknesses ranked against anonymized peers.",
+      why: "Whoever does the best work gets forwarded the work: better results, lower risk. Visual enough for every tow company, from a one-truck shop to a large operator.",
       powered: ["Tableau Embedded", "agent-portal-eapi", "MuleSoft"],
       async run(x) {
         await sketch(x, {
           clock: "17:00:00",
-          left: (tap, i = 0) => S.stub("agentDesk", { app: "Agent portal", title: "Coastal Recovery Co. \u00b7 88", lines: ["ACC 91 \u00b7 UPD 84 \u00b7 RPT 95 \u00b7 REC 82 \u00b7 CMP 90", "Rank 4 of 37 in Southern California", "Improve update cadence to move up"], tap, step: i }),
+          left: (tap, i = 0) => S.stub("agentDesk", { app: "Agent portal", title: "Coastal Recovery Co. \u00b7 88", lines: ["ACC 91 \u00b7 UPD 84 \u00b7 RPT 95 \u00b7 REC 82 \u00b7 COV 90", "Rank 4 of 37 in Southern California", "Weakest: update cadence. Improve it to move up"], tap, step: i }),
           beats: [
             { tap: "next", cap: "Click the scorecard.", path: ["p-events", "e-agent", "agentapp"], tag: ["agentapp", "rating 88 \u00b7 #4"], eng: "agent-portal-eapi \u00b7 GET /agents/AG-0612/scorecard \u00b7 Tableau Embedded view", exec: "The agent sees how they rank" },
           ],
@@ -381,7 +382,7 @@ window.Acts = (function () {
     },
     {
       id: "8.2", act: "8", short: false, title: "600+ agents, each seeing only their own data",
-      desc: "The same embedded scorecard serves every agent. Row-level security shows each one only their own numbers plus anonymized peer benchmarks. Lender clients get no analytics access.",
+      desc: "The same embedded scorecard serves every agent, each with their own login. Row-level security shows each one only their own numbers plus anonymized peer benchmarks. Lender clients get no analytics access.",
       why: "One governed dashboard, not 600 exports.",
       powered: ["Tableau Embedded", "Row-level security"],
       async run(x) {
