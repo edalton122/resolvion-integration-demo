@@ -26,6 +26,13 @@ window.Screens = (function () {
     const r = D.roles[roleKey];
     const device = opt.device || r.device;
     const clock = opt.clock ? `<span class="dv-clock">${opt.clock}</span>` : "";
+    if (device === "laptop") {
+      return `
+      <div class="device laptop" style="--rc:${r.color}">
+        <div class="dv-bar dv-titled"><span class="dv-role"><i></i><b>${esc(r.label)}</b>${esc(r.sub)}</span><span class="dv-cam"></span>${opt.clock ? `<span class="dv-rclock">${opt.clock}</span>` : ""}</div>
+        <div class="dv-screen">${inner}</div>
+      </div>`;
+    }
     return `
       <div class="badge-role" style="--rc:${r.color}">
         <span class="br-dot">${r.label.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</span>
@@ -127,7 +134,7 @@ window.Screens = (function () {
       if (st === 0)
         return plat("Queue", `${pageHead("var(--brand)", SVG.doc, "Intake queue", "New assignments", btn("Refresh"), "50,000+ assignments a month \u00b7 every lender format")}${card("Today", queue, { right: "4 of 1,612" })}`);
       const head = pageHead("var(--brand)", SVG.car, `Assignment \u00b7 ${D.lender.name}`, A.id, st === 1 ? btn("Normalize note", tap, "brand") : st === 2 ? btn("Create assignment", tap, "brand") : btn("Open case"), esc(vehicleLine));
-      const raw = card("Lender note (raw)", `<p class="rs-note">${st === 1 ? markPII(A.rawNote) : esc(A.rawNote)}</p>${st === 1 ? `<div class="rs-hint">${SVG.shield} ${A.piiTerms.length} borrower identifiers detected. Policy routes this note to the on-site model only.</div>` : ""}`, { right: `${D.lender.id} \u00b7 system-to-system` });
+      const raw = card("Lender note (raw)", `<p class="rs-note ${st >= 3 ? "clamp" : ""}">${st === 1 ? markPII(A.rawNote) : esc(A.rawNote)}</p>${st === 1 ? `<div class="rs-hint">${SVG.shield} ${A.piiTerms.length} borrower identifiers detected. Policy routes this note to the on-site model only.</div>` : ""}`, { right: `${D.lender.id} \u00b7 system-to-system` });
       const N = A.normalized;
       const norm = card(
         "Normalized by the on-site model",
@@ -326,7 +333,7 @@ window.Screens = (function () {
       cls: i === st && o.tap ? "rs-new" : "",
     }));
     const rules = F.models.map((m) => `<div class="af-rule"><b>${esc(m.name)}</b><span>${esc(m.rule)}</span><em>${esc(m.cost)}</em></div>`).join("");
-    const reg = F.agents.map((a) => `<span class="af-agent">${esc(a.name)}<small>${esc(a.where)}</small></span>`).join("");
+    const reg = F.agents.map((a) => `<span class="af-agent inline">${esc(a.name)}<small>${esc(a.where)}</small></span>`).join("");
     const body = `${pageHead("#00A1E0", SVG.shield, "Model Proxy", "Live requests \u00b7 routed by policy", "", "Sits across your orchestrator and agents \u00b7 nothing replaced")}
       ${card("Registered \u00b7 discovered by AI Platform Scanners", `<div class="af-agents">${reg}</div>`)}
       ${card("Requests", table(["Caller", "Data", "Routed to"], rows))}${card("Routing rules \u00b7 Policy Catalog", `<div class="af-rules">${rules}</div>`)}`;
@@ -341,7 +348,7 @@ window.Screens = (function () {
       { id: "route.code", d: "Code tasks \u2192 Claude", scope: "Coding agents" },
       { id: "route.general", d: "No PII \u2192 lowest-cost capable model", scope: "All agents" },
     ];
-    const rows = pols.map((p) => ({
+    const rows = pols.filter((p) => st === 0 || p.hot).map((p) => ({
       cells: [`<code>${esc(p.id)}</code>`, esc(p.d), `<small class="af-sub">${esc(p.scope)}</small>`, pill("Enforced", "ok")],
       tap: p.hot && st === 0 ? o.tap : null,
       cls: p.hot && st <= 1 ? "rs-new" : "",
@@ -352,7 +359,7 @@ window.Screens = (function () {
         <div><small>When</small><b>Payload contains borrower identifiers</b><span>Detectors: account number \u00b7 address \u00b7 location</span></div>
         <div><small>Then</small><b>Route to the on-site model</b><span>Block every cloud model \u00b7 log the decision</span></div>
       </div>
-      <div class="pl-match"><small>Matched in the Lakeshore note \u00b7 ${A.piiTerms.length} identifiers</small><p class="rs-note">${marked}\u2026</p></div>
+      ${st >= 2 ? "" : `<div class="pl-match"><small>Matched in the Lakeshore note \u00b7 ${A.piiTerms.length} identifiers</small><p class="rs-note">${marked}\u2026</p></div>`}
       ${st === 1 && o.tap ? btn("View decision", o.tap, "brand") : ""}`, { right: "Policy Catalog \u00b7 v3" }) : "";
     const log = st >= 2 ? card("Decision log", table(["Time (PT)", "Caller", "Decision", "Model"], [
       { cells: ["8:14:03", "notes-normalize-papi", pill("ROUTE on-site", "ok"), "On-site model \u00b7 812 tokens"], cls: "rs-in" },
@@ -360,7 +367,7 @@ window.Screens = (function () {
       { cells: ["8:12:58", "Order Evaluation Agent", pill("No PII \u00b7 pass"), "OpenAI (enterprise)"] },
     ]), { right: "every call \u00b7 audit trail" }) : "";
     const body = `${pageHead("#00A1E0", SVG.shield, "Policy Catalog", "Written once, enforced for every caller", "", "Agents, MCP tools and model calls \u00b7 nothing hard-coded in one app")}
-      ${card("Policies", table(["Policy", "Rule", "Applies to", ""], rows))}${detail}${log}`;
+      ${card("Policies", table(["Policy", "Rule", "Applies to", ""], rows) + (st >= 1 ? `<div class="rs-more">+ 3 more policies, all enforced</div>` : ""))}${detail}${log}`;
     return af("Policies", body);
   }
 
@@ -441,13 +448,13 @@ window.Screens = (function () {
       ["8:11 AM", "Chat \u00b7 Fin \u2192 person", "Dispute", "Escalated"],
       ["8:19 AM", "Voice \u00b7 Fin", "Lot hours", "Resolved"],
       ["8:26 AM", "Voice \u00b7 Fin", "Personal property", "Resolved"],
-    ].map(([t, ch, why, out], i) => ({ cells: [t, esc(ch), esc(why), ok, ok, ok, pill(out, out === "Resolved" ? "ok" : "new")], tap: i === 0 && st === 0 ? o.tap : null, cls: i === 0 && st <= 1 ? "rs-new" : "" }));
-    const detail = st >= 1 ? `<div class="rs-grid2">${card("Call 8:05 AM \u00b7 checks in order", `<div class="cr-tl">
+    ].filter((_, i) => st === 0 || i === 0).map(([t, ch, why, out], i) => ({ cells: [t, esc(ch), esc(why), ok, ok, ok, pill(out, out === "Resolved" ? "ok" : "new")], tap: i === 0 && st === 0 ? o.tap : null, cls: i === 0 && st <= 1 ? "rs-new" : "" }));
+    const detail = st >= 1 ? `<div class="rs-grid2">${card("Call 8:05 AM \u00b7 checks in order", `<div class="cr-tl inline">
         ${[["0:12", "Identity verified", "before any vehicle detail"], ["0:48", "get_vehicle_status", "masked response"], ["1:36", "book_property_pickup", "Thu 9\u201311 AM"], ["2:20", "Disclosure read", "illustrative script"], ["2:41", "Call ended", "resolved by Fin"]].map(([t, k, s]) => `<div><span>${t}</span><b>${esc(k)}</b><small>${esc(s)}</small></div>`).join("")}</div>`)}
       ${card("What the log keeps", `<div class="cr-log"><div><small>Raw request (never stored)</small><code>account=55-0193-882 zip=92501 phone=(951) 555-0141</code></div><div class="arrow">\u2193 Omni Gateway PII masking</div><div><small>Logged</small><code>account=\u2022\u2022\u2022\u2022882 zip=\u2022\u2022\u2022\u202201 phone=(\u2022\u2022\u2022) \u2022\u2022\u2022-\u2022\u202241</code></div></div>`)}</div>
       ${st === 1 && o.tap ? btn("Export for call monitoring", o.tap, "brand") : ""}` : "";
     const body = `${pageHead("#0E8A7E", SVG.shield, "Call compliance", "Today \u00b7 every call checked", "", "Fin calls and handoffs \u00b7 sample data")}
-      ${card("Calls", table(["Time", "Channel", "Reason", "ID first", "Disclosure", "PII masked", "Outcome"], calls), { right: "4 of 312 today (illustrative)" })}${detail}`;
+      ${card("Calls", table(["Time", "Channel", "Reason", "ID first", "Disclosure", "PII masked", "Outcome"], calls) + (st >= 1 ? `<div class="rs-more">+ 311 more calls today, same checks (illustrative)</div>` : ""), { right: st >= 1 ? "1 of 312 today (illustrative)" : "4 of 312 today (illustrative)" })}${detail}`;
     return frame("cs", lx("Customer Service", ["Calls", "Compliance", "Reports"], "Compliance", body, { kind: "admin", avatar: "RN", toast: st >= 2 ? toast("success", "Exported 1 call for call monitoring", "PII masked \u00b7 checks and timestamps included") : "" }), { device: "laptop" });
   }
 

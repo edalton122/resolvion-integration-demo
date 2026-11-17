@@ -211,7 +211,57 @@
     setTimeout(() => { if (first.isConnected && first.classList.contains("pulse")) revealTarget(first, "auto"); }, 650);
   }
 
-  /* Scrolls inner app screens, then the pane, so the target clears the sticky "What's happening" card. */
+  /* ------------------------------------------------------------ fit the left screen to the pane, no page scroll */
+  const FIT_MIN = 0.5, FIT_MAX = 1.2, FIT_W = 744;
+  const NARROW = window.matchMedia("(max-width: 760px)");
+  let fitScale = FIT_MAX, fitQueued = false, fitObs = null;
+
+  /* Scale only shrinks within a step, so the screen never grows and shrinks back between taps.
+     It grows past 1 only when the pane is wide enough to keep the laptop at its full layout width. */
+  function fitLeft() {
+    const box = $("leftFit"), ui = $("leftUI");
+    if (!box || !ui) return;
+    ui.style.zoom = "";
+    ui.style.width = "";
+    box.classList.remove("scroll");
+    if (NARROW.matches) { document.body.dataset.fit = "1"; return; }
+    const W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H) return;
+    fitScale = Math.min(fitScale, Math.max(1, W / FIT_W));
+    let s = fitScale;
+    for (let k = 0; k < 4; k++) {
+      ui.style.width = `${W / s}px`;
+      const need = Math.min(fitScale, H / ui.offsetHeight);
+      if (need >= s - 0.004) break;
+      s = Math.max(FIT_MIN, need);
+      if (s === FIT_MIN) break;
+    }
+    ui.style.width = `${W / s}px`;
+    ui.style.zoom = s;
+    fitScale = s;
+    if (ui.offsetHeight * s > H + 2) box.classList.add("scroll");
+    document.body.dataset.fit = s.toFixed(2);
+  }
+
+  function queueFit() {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => { fitQueued = false; fitLeft(); });
+  }
+
+  function watchFit(ui) {
+    fitScale = FIT_MAX;
+    if (fitObs) fitObs.disconnect();
+    fitObs = new MutationObserver(queueFit);
+    fitObs.observe(ui, { childList: true, subtree: true, characterData: true });
+    ui.addEventListener("load", queueFit, true);
+    fitLeft();
+  }
+
+  window.addEventListener("resize", () => { fitScale = FIT_MAX; queueFit(); });
+  if (document.fonts) document.fonts.ready.then(queueFit);
+
+  /* Scrolls inner app screens (and the fit box, if a screen is still too tall) so the target is in view. */
   function revealTarget(el, behavior) {
     const desc = left.querySelector(".left-desc");
     const lr = left.getBoundingClientRect();
@@ -223,7 +273,8 @@
       const limit = Math.min(ar.bottom - 6, floor + paneRoom);
       let d = r.bottom > limit ? r.bottom - limit : 0;
       if (r.top - d < ar.top + 6) d = r.top - ar.top - 6;
-      if (Math.abs(d) > 1) a.scrollTop += d;
+      const z = a.closest("#leftUI") ? fitScale : 1;
+      if (Math.abs(d) > 1) a.scrollTop += d / z;
     }
     const { top, bottom } = el.getBoundingClientRect();
     let dy = bottom > floor ? bottom - floor : 0;
@@ -304,12 +355,13 @@
     try {
       if (showVignette) await vignette(s, t, handoff);
       if (!Run.alive(t)) return;
-      left.innerHTML = `<div class="left-ui" id="leftUI"></div>${s.desc ? `<div class="left-desc"><div class="ld-h"><span class="ld-k">What\u2019s happening</span><span class="ld-s">Step ${esc(s.id)}</span></div><div class="ld-b"><p class="ld-m">${esc(s.desc)}</p>${s.why ? `<p class="ld-w"><b>Why it matters</b> ${esc(s.why)}</p>` : ""}</div></div>` : ""}`;
+      left.innerHTML = `<div class="left-fit" id="leftFit"><div class="left-ui" id="leftUI"></div></div>${s.desc ? `<div class="left-desc"><p class="ld-m"><span class="ld-k">What\u2019s happening</span>${esc(s.desc)}</p>${s.why ? `<p class="ld-w"><b>Why it matters</b> ${esc(s.why)}</p>` : ""}</div>` : ""}`;
       const leftUI = $("leftUI");
+      watchFit(leftUI);
       const ctx = {
         t,
         C,
-        left(html) { if (Run.alive(t)) { leftUI.innerHTML = html; applyPulse(); } },
+        left(html) { if (Run.alive(t)) { leftUI.innerHTML = html; fitLeft(); applyPulse(); } },
         tap: (names) => tap(names, t),
         sleep: (ms) => Run.sleep(ms, t),
         reveal(sel) {

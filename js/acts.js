@@ -65,8 +65,8 @@ window.Acts = (function () {
     /* ---------- Chapter 1: Intake */
     {
       id: "1.1", act: "1", short: true, title: "A lender assignment becomes one canonical record",
-      desc: `Lakeshore Auto Finance places assignment ${A.id} system-to-system, with a free-text note in its own shorthand. MuleSoft receives it, sends the note to Resolvion\u2019s on-site model to be deciphered and normalized, maps everything into one canonical assignment, writes it to the new platform and carries it into the legacy ERP.`,
-      why: "Each lender\u2019s format is handled once, centrally. Borrower identifiers in the note never leave Resolvion\u2019s hands, and nobody keys the assignment twice.",
+      desc: `Lakeshore Auto Finance sends assignment ${A.id} with a note in its own shorthand. MuleSoft has the on-site model decode it and writes one canonical record to both platforms.`,
+      why: "Each lender format is handled once. Borrower identifiers never leave Resolvion, and nobody keys it twice.",
       powered: ["MuleSoft Anypoint", "DataWeave", "Agent Fabric policy"],
       async run(x) {
         await sketch(x, {
@@ -122,8 +122,8 @@ window.Acts = (function () {
     },
     {
       id: "1.2", act: "1", short: false, title: "Borrower PII stays on-site, by policy",
-      desc: "The rule that sent the note to the on-site model isn\u2019t code in one app. It\u2019s an Agent Fabric policy that applies to every agent and model call, written once in the Policy Catalog, with an audit trail.",
-      why: "Every client\u2019s rules are different and all of them must be honored. Strict guardrails first: the policy enforces them for every caller, not just the one someone remembered to update.",
+      desc: "The rule that sent the note on-site isn\u2019t code in one app. It\u2019s an Agent Fabric policy in the Policy Catalog: written once, applied to every agent and model call, audited.",
+      why: "Every client\u2019s rules must be honored. Strict guardrails first, for every caller, not just one app.",
       powered: ["Agent Fabric Policy Catalog", "Model Proxy", "Audit trail"],
       async run(x) {
         await sketch(x, {
@@ -158,7 +158,7 @@ window.Acts = (function () {
     },
     {
       id: "1.3", act: "1", short: false, title: "Every lender\u2019s format, one lifecycle",
-      desc: "Lenders, the agent network and the portal each name the same status differently. MuleSoft maps them all to one canonical lifecycle, from Assigned to Recovered.",
+      desc: "Lenders, the agent network and the portal each name statuses differently. MuleSoft maps them to one lifecycle, from Assigned to Recovered.",
       why: "Mapped once per source. Every report, agent and API downstream speaks one language.",
       powered: ["DataWeave", "Canonical model", "Anypoint Exchange"],
       async run(x) {
@@ -193,9 +193,9 @@ window.Acts = (function () {
 
     /* ---------- Chapter 2: MVP bridge */
     {
-      id: "2.1", act: "2", short: true, title: "A fee line posted in Azure lands on the client invoice in the legacy ERP",
-      desc: "A recovery fee is posted in the new Azure platform for an assignment recovered overnight. MuleSoft carries the transaction back to the legacy SQL Server ERP, in seconds, where it rolls up onto Lakeshore\u2019s client invoice, so billing keeps running on the system it runs on today.",
-      why: "Accounting can\u2019t pause for the MVP. This bridge is built once and reused when the legacy ERP retires, not thrown away. Agent payables and GL posting can follow on the same APIs.",
+      id: "2.1", act: "2", short: true, title: "A fee line posted in Azure lands on the legacy ERP invoice",
+      desc: "A recovery fee is posted in the new Azure platform. In seconds, MuleSoft carries it to the legacy SQL Server ERP and onto Lakeshore\u2019s client invoice, so billing runs as it does today.",
+      why: "Accounting can\u2019t pause for the MVP. The bridge is reused when the legacy ERP retires, not thrown away.",
       powered: ["MuleSoft (Azure \u2192 legacy ERP)", "assignment-sync-papi", "Anypoint Monitoring"],
       async run(x) {
         await sketch(x, {
@@ -234,8 +234,8 @@ window.Acts = (function () {
     },
     {
       id: "2.2", act: "2", short: true, title: "One bad record is quarantined and retried, not dropped",
-      desc: "The next fee line arrives without the assignment\u2019s lender reference. Instead of failing silently or posting a half-record, MuleSoft holds it in quarantine with a reason code and retries it once the reference is filled in.",
-      why: "Accounting never posts a half-record, and nothing goes missing. Every held record has a reason and an owner.",
+      desc: "The next fee line arrives without a lender reference. Instead of failing silently, MuleSoft quarantines it with a reason code and retries once the reference is filled in.",
+      why: "No half-records in accounting and nothing lost. Every held record has a reason and an owner.",
       powered: ["MuleSoft error handling", "DQ quarantine", "Anypoint Monitoring"],
       async run(x) {
         await sketch(x, {
@@ -278,8 +278,8 @@ window.Acts = (function () {
     },
     {
       id: "2.3", act: "2", short: false, title: "Nightly reconciliation and lineage, Azure to ERP",
-      desc: "Every night MuleSoft reconciles the two systems line by line and reports any difference. Any fee line can be traced from the Azure record, through the API that moved it, to the legacy ERP row.",
-      why: "Two systems of record only work if someone can prove they agree. This does it every night, without a spreadsheet.",
+      desc: "Every night MuleSoft reconciles both systems line by line. Any fee line can be traced from the Azure record, through the API that moved it, to the legacy ERP row.",
+      why: "Two systems of record only work if someone can prove they agree, every night, without a spreadsheet.",
       powered: ["MuleSoft Scheduler", "Lineage", "Anypoint Exchange"],
       async run(x) {
         await sketch(x, {
@@ -323,8 +323,8 @@ window.Acts = (function () {
     /* ---------- Chapter 3: Dispatch and holds */
     {
       id: "3.1", act: "3", short: false, title: "The best agent is selected and the case is pushed",
-      desc: "Resolvion\u2019s automated agent selection, now on governed APIs: every agent servicing the borrower\u2019s area is scored by scorecard and lot-to-target distance, and the winner gets the case pushed through the agent network.",
-      why: "The rules stay Resolvion\u2019s. MuleSoft delivers the result to the agent network in one governed call, and logs it.",
+      desc: "Resolvion\u2019s agent selection, now on governed APIs: nearby agents are scored by scorecard and lot-to-target distance, and the winner gets the case through the agent network.",
+      why: "The rules stay Resolvion\u2019s. MuleSoft delivers the result in one governed, logged call.",
       powered: ["dispatch-papi", "rdn-sapi", "API Manager policies"],
       async run(x) {
         await sketch(x, {
@@ -359,8 +359,8 @@ window.Acts = (function () {
     },
     {
       id: "3.2", act: "3", short: true, title: "A lender hold reaches the truck in 4 seconds",
-      desc: "Wednesday, 10:42 AM. The borrower pays Lakeshore, and the lender issues a HOLD. MuleSoft puts it on a persistent queue and pushes it straight to Coastal Recovery\u2019s phone: delivered 4 seconds after the lender sent it.",
-      why: "A late hold is a wrongful repossession, a top CFPB concern. Seconds, not the next sync, and every step is timestamped for compliance.",
+      desc: "Wednesday, 10:42 AM. The borrower pays and Lakeshore issues a HOLD. MuleSoft queues it and pushes it to Coastal Recovery\u2019s phone: delivered 4 seconds after the lender sent it.",
+      why: "A late hold is a wrongful repossession, a top CFPB concern. Seconds, not the next sync, every step timestamped.",
       powered: ["MuleSoft", "Anypoint MQ", "hold-close-papi", "API Manager policies"],
       async run(x) {
         await sketch(x, {
@@ -389,7 +389,7 @@ window.Acts = (function () {
     },
     {
       id: "3.3", act: "3", short: false, title: "Release, acknowledged and audited",
-      desc: "Thursday the lender releases the hold. The release follows the same governed path: to the agent, acknowledged, and reflected in the lender\u2019s status feed.",
+      desc: "Thursday the lender releases the hold. The release takes the same governed path: to the agent, acknowledged, and into the lender\u2019s status feed.",
       why: "Holds, releases and closes all ride one path with one audit trail.",
       powered: ["hold-close-papi", "client-status-eapi", "Anypoint MQ"],
       async run(x) {
@@ -421,8 +421,8 @@ window.Acts = (function () {
     /* ---------- Chapter 4: Recovery */
     {
       id: "4.1", act: "4", short: false, title: "Recovered: condition report inside 4 hours",
-      desc: "Thursday night Coastal Recovery recovers the Accord. From the lot, the agent submits photos, the condition report and the personal-property inventory once. MuleSoft delivers it everywhere it\u2019s needed, well inside Resolvion\u2019s 4-hour standard.",
-      why: "The agent enters it once. The lender, the platform, accounting and reporting all get it from the same event.",
+      desc: "Thursday night Coastal Recovery recovers the Accord. From the lot, the agent submits photos, condition report and property inventory once, well inside Resolvion\u2019s 4-hour standard.",
+      why: "Entered once. The lender, the platform, accounting and reporting all get it from the same event.",
       powered: ["recovery-event-papi", "rdn-sapi", "MuleSoft"],
       async run(x) {
         await sketch(x, {
@@ -455,8 +455,8 @@ window.Acts = (function () {
     },
     {
       id: "4.2", act: "4", short: false, title: "Fees to accounting, status to the lender, metrics to Tableau",
-      desc: "The same recovery event posts the fee lines to the legacy ERP over the bridge from chapter 2, updates Lakeshore\u2019s status feed and lands the SLA metrics in Tableau.",
-      why: "Reuse: the accounting bridge, the lender status API and the governed data in Tableau were already built. Nothing new for this event.",
+      desc: "The same event posts fee lines to the legacy ERP over the chapter 2 bridge, updates Lakeshore\u2019s status feed and lands the SLA metrics in Tableau.",
+      why: "Reuse: the bridge, the status API and the Tableau data already existed. Nothing new to build.",
       powered: ["assignment-sync-papi", "client-status-eapi", "Tableau Cloud"],
       async run(x) {
         await sketch(x, {
@@ -492,8 +492,8 @@ window.Acts = (function () {
     /* ---------- Chapter 5: Borrower call */
     {
       id: "5.1", act: "5", short: true, title: "\u201cWhere\u2019s my car, and my belongings?\u201d Fin answers",
-      desc: "Friday morning the borrower calls the \u201cIf your car was repossessed\u201d line. Fin verifies identity, finds the vehicle\u2019s lot and hours, schedules pickup of the child seat and reads the required disclosure. It gets live recovery data by calling a MuleSoft Experience API through Fin data connectors, inside a Procedure.",
-      why: "Routine calls are resolved around the clock, deferring headcount. Fin calls the same governed APIs as everything else, with no new point-to-point code: 76% average resolution rate across Fin customers.",
+      desc: "Friday, the borrower calls the repossession line. Fin verifies identity, finds the lot and hours, books the child-seat pickup and reads the disclosure, with live data from a MuleSoft API.",
+      why: "Routine calls resolved 24/7, deferring headcount. 76% average resolution rate across Fin customers.",
       powered: ["Fin (AI service agent)", "Fin data connectors", "borrower-service-eapi"],
       async run(x) {
         await sketch(x, {
@@ -535,7 +535,7 @@ window.Acts = (function () {
     },
     {
       id: "5.2", act: "5", short: false, title: "A complex call goes to a person, with full context",
-      desc: "A second caller disputes the repossession. The Fin Procedure branches: disputes are out of scope, so Fin hands off to a person and passes the verified identity, assignment and conversation so far.",
+      desc: "A second caller disputes the repossession. Disputes are out of scope, so Fin hands off to a person with the verified identity, assignment and conversation so far.",
       why: "Escalation rules come from compliance. The person picking up doesn\u2019t start from zero.",
       powered: ["Fin Procedures", "Escalation rules", "MuleSoft"],
       async run(x) {
@@ -566,7 +566,7 @@ window.Acts = (function () {
     {
       id: "5.3", act: "5", short: false, title: "Disclosures, ID checks and masked logs on every call",
       desc: "Every call follows the scripted disclosures and ID checks, and borrower PII is masked in every MuleSoft log.",
-      why: "Compliance by design: CFPB, FTC, FDCPA, GLBA and UDAAP rules, and your call monitoring program, are why masking, scripts and audit matter.",
+      why: "Compliance by design: CFPB, FTC, FDCPA, GLBA, UDAAP and your call monitoring program are why this matters.",
       powered: ["Fin", "Omni Gateway PII masking", "Audit trail"],
       async run(x) {
         await sketch(x, {
@@ -607,8 +607,8 @@ window.Acts = (function () {
     /* ---------- Chapter 6: Traffic cop */
     {
       id: "6.1", act: "6", short: true, title: "One traffic cop: every request routed to the right model, by policy",
-      desc: "Agent Fabric sits across the orchestrator, agents and models Resolvion already runs, rather than replacing them: the Case Evaluation and Order Evaluation agents, the Notes Normalizer on the on-site model, Claude and OpenAI. Model Proxy routes each request to the right model at the right cost.",
-      why: "Works with your frameworks; nothing is replaced. PII goes on-site, code to Claude, general summarization to the cheapest capable model, and every decision is on the audit trail.",
+      desc: "Agent Fabric sits across the orchestrator, agents and models Resolvion already runs, from the on-site model to Claude and OpenAI. Model Proxy routes each request to the right model.",
+      why: "Nothing is replaced. PII stays on-site, code goes to Claude, and every routing decision is audited.",
       powered: ["Agent Fabric Model Proxy", "Policy Catalog", "AI Platform Scanners"],
       async run(x) {
         await sketch(x, {
@@ -647,8 +647,8 @@ window.Acts = (function () {
     },
     {
       id: "6.2", act: "6", short: true, title: "Token spend by agent and model, capped by a Model Wallet",
-      desc: `The FinOps Dashboard shows token spend across every agent and model. Each agent draws from a Model Wallet budget: the ${D.fabric.wallet.agent} has used ${D.fabric.wallet.used}% of today\u2019s and is capped at 100%, not allowed to overrun.`,
-      why: "Cost control first. Spend is visible per agent and per model every day, budgets are enforced rather than reviewed after the fact, and the on-site model carries most of the volume at no marginal cost.",
+      desc: `The FinOps Dashboard shows token spend for every agent and model. The ${D.fabric.wallet.agent} has used ${D.fabric.wallet.used}% of today\u2019s Model Wallet budget and is capped at 100%.`,
+      why: "Cost control first: spend visible daily, budgets enforced, and most volume on the on-site model.",
       powered: ["Agent Fabric FinOps Dashboard", "Model Wallet", "Model Proxy"],
       async run(x) {
         await sketch(x, {
@@ -678,7 +678,7 @@ window.Acts = (function () {
     {
       id: "6.3", act: "6", short: false, title: "A lender\u2019s data rule blocks a cloud model call",
       desc: "An agent tries to send Lakeshore borrower data to a cloud model. The per-lender policy blocks it and reroutes the request to the on-site model.",
-      why: "Every client\u2019s rules are different, and all must be honored. Written once in the Policy Catalog, enforced for every agent, with an audit trail.",
+      why: "Every client\u2019s rules honored: written once in the Policy Catalog, enforced for every agent, audited.",
       powered: ["Agent Fabric Policy Catalog", "Omni Gateway", "Audit trail"],
       async run(x) {
         await sketch(x, {
@@ -712,8 +712,8 @@ window.Acts = (function () {
     /* ---------- Chapter 7: Insights */
     {
       id: "7.1", act: "7", short: true, title: "A player-card exec scorecard, built by prompt",
-      desc: "Devon asks for an exec view of agent SLAs and recovery performance. On governed data from the MuleSoft flows, a player-card style scorecard is drafted by prompt: concise and easy to see, instead of a flat grid of red and green dots.",
-      why: "Exec views in hours instead of waiting on one or two Desktop builders, on the same numbers billing uses. Build it with Claude through the free Tableau MCP, or in Tableau Studio with Tableau Agent (requires Tableau+).",
+      desc: "Devon asks for an exec view of agent SLAs. On governed MuleSoft data, a player-card scorecard is drafted by prompt, instead of a flat grid of red and green dots.",
+      why: "Exec views in hours, on the numbers billing uses. Built with Claude via the free Tableau MCP, or Tableau Agent (requires Tableau+).",
       powered: ["Tableau Cloud", "Tableau MCP", "Tableau Studio (Tableau+)"],
       async run(x) {
         await sketch(x, {
@@ -758,8 +758,8 @@ window.Acts = (function () {
     },
     {
       id: "7.2", act: "7", short: false, title: "Monday\u2019s digest comes to the leader",
-      desc: "Leaders who only view get a Monday digest of what changed: the metrics that moved and why. Tableau Pulse is already part of your licensing and ready to turn on.",
-      why: "About 90% of Tableau users only view, and execs want the data back concise. The insight comes to them.",
+      desc: "Leaders who only view get a Monday digest of the metrics that moved and why. Tableau Pulse is part of your licensing and ready to turn on.",
+      why: "About 90% of Tableau users only view. The insight comes to them, concise.",
       powered: ["Tableau Pulse", "Tableau Cloud"],
       async run(x) {
         await sketch(x, {
@@ -790,8 +790,8 @@ window.Acts = (function () {
     /* ---------- Chapter 8: Agent scorecard */
     {
       id: "8.1", act: "8", short: true, title: "Coastal Recovery\u2019s scorecard: rating 88, rank 4 of 37",
-      desc: "Coastal Recovery Co. signs in to the agent portal and sees a FIFA-style player card: an overall rating dial plus acceptance time, update cadence, the 4-hour report SLA, recovery rate and coverage, with strengths and weaknesses ranked against anonymized peers.",
-      why: "Whoever does the best work gets forwarded the work: better results, lower risk. Visual enough for every tow company, from a one-truck shop to a large operator.",
+      desc: "Coastal Recovery signs in to the agent portal and sees a FIFA-style player card: an overall rating plus SLA, cadence and recovery stats, ranked against anonymized peers.",
+      why: "Whoever does the best work gets the work: better results, lower risk, clear to any size tow company.",
       powered: ["Tableau Embedded", "agent-portal-eapi", "MuleSoft"],
       async run(x) {
         await sketch(x, {
@@ -830,7 +830,7 @@ window.Acts = (function () {
     },
     {
       id: "8.2", act: "8", short: false, title: "600+ agents, each seeing only their own data",
-      desc: "The same embedded scorecard serves every agent, each with their own login. Row-level security shows each one only their own numbers plus anonymized peer benchmarks. Lender clients get no analytics access.",
+      desc: "The same embedded scorecard serves every agent with their own login. Row-level security shows only their own numbers plus anonymized peers. Lenders get no analytics access.",
       why: "One governed dashboard, not 600 exports.",
       powered: ["Tableau Embedded", "Row-level security"],
       async run(x) {

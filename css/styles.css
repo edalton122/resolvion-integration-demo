@@ -142,7 +142,7 @@ code { font-family: var(--mono); font-size: .92em; }
 /* ------------------------------------------------------------ stage */
 .stage { display: grid; grid-template-columns: 50% 50%; min-height: 0; position: relative; }
 .left {
-  overflow: auto; padding: 18px 22px 30px; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 12px;
+  overflow: hidden; padding: 10px 16px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0;
   background: radial-gradient(circle at 20% 0%, #fff 0, var(--bg) 60%);
 }
 .right { background: var(--cx-bg); color: var(--cx-text); display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--cx-line); }
@@ -185,6 +185,11 @@ tr.tapped > td { background: #e3eefa; }
 .device.tablet { width: min(100%, 600px); border: 3px solid var(--rc); }
 .device.laptop { width: min(100%, 720px); border-radius: 14px 14px 4px 4px; background: #222; padding: 8px 10px 10px; border: 3px solid var(--rc); }
 .device.laptop .dv-screen { border-radius: 4px; }
+.device.laptop .dv-titled { height: 24px; margin: -2px 2px 4px; justify-content: center; }
+.dv-role { position: absolute; left: 2px; display: flex; align-items: center; gap: 7px; font-size: 12px; color: #aab4be; white-space: nowrap; }
+.dv-role i { width: 9px; height: 9px; border-radius: 50%; background: var(--rc); box-shadow: 0 0 0 2px rgba(255,255,255,.12); }
+.dv-role b { color: #fff; font-weight: 600; font-size: 13px; }
+.dv-rclock { position: absolute; right: 4px; font-size: 11.5px; color: #aab4be; }
 .device.laptop::after { content: ""; position: absolute; left: -7%; right: -7%; bottom: -14px; height: 12px; background: linear-gradient(#cfd2d6, #a8abb0); border-radius: 0 0 14px 14px; }
 .device.phone { width: 292px; border-radius: 40px; padding: 12px 11px 16px; border: 3px solid var(--rc); }
 .device.phone .dv-screen { border-radius: 28px; height: 560px; }
@@ -707,26 +712,25 @@ body.exec .cx-mini .lg { grid-template-columns: 92px 1fr; }
 .sms-call { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 18px; padding: 8px 14px; background: #34c759; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .sms-call svg { width: 14px; height: 14px; }
 .sms-call.done { background: #e9e9eb; color: #2e844a; cursor: default; }
-.left-ui { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.left-fit { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.left-fit.scroll { justify-content: flex-start; overflow-y: auto; }
+.left-ui { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; flex: none; padding-bottom: 16px; }
 .left-desc {
-  position: sticky; bottom: 0; z-index: 3; flex: none;
-  width: min(100%, 720px); margin-top: 4px; background: #fff; border-radius: 12px; overflow: hidden;
-  border: 1px solid #e3c4c7; box-shadow: 0 10px 28px -10px rgba(26, 24, 24, .35), 0 0 0 4px rgba(246, 247, 249, .9);
+  flex: none; width: min(100%, 780px); background: #fff; border-radius: 10px;
+  border: 1px solid var(--line); border-left: 4px solid var(--brand); padding: 8px 14px 9px;
+  box-shadow: 0 6px 18px -10px rgba(17, 35, 55, .35);
   animation: fadeUp .4s ease both;
 }
-.ld-h { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--brand); color: #fff; }
-.ld-k { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-.ld-k::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: ldLive 1.6s ease-in-out infinite; }
-.ld-s { font-size: 12px; font-weight: 600; opacity: .85; }
-.ld-b { padding: 8px 16px 10px; }
-.ld-m { margin: 0; font-size: 16px; line-height: 1.42; color: var(--ink); font-weight: 600; }
-.ld-w { margin: 7px 0 0; font-size: 14.5px; line-height: 1.4; color: var(--ink2); }
-.ld-w b { color: var(--brand); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-right: 8px; }
+.ld-k { display: inline-flex; align-items: center; gap: 6px; margin-right: 9px; color: var(--brand); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; vertical-align: 1px; }
+.ld-k::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); animation: ldLive 1.6s ease-in-out infinite; }
+.ld-m { margin: 0; font-size: 15.5px; line-height: 1.4; color: var(--ink); font-weight: 600; }
+.ld-w { margin: 5px 0 0; font-size: 14px; line-height: 1.38; color: var(--ink2); }
+.ld-w b { color: var(--brand); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; margin-right: 9px; }
 @keyframes ldLive { 50% { opacity: .35; } }
 @media (max-height: 820px) {
-  .ld-m { font-size: 15px; }
-  .ld-w { font-size: 13.5px; margin-top: 5px; }
-  .ld-b { padding: 8px 14px 10px; }
+  .ld-m { font-size: 14.5px; line-height: 1.36; }
+  .ld-w { font-size: 13.5px; margin-top: 4px; }
+  .left-desc { padding: 7px 13px 8px; }
 }
 
 /* ------------------------------------------------------------ app shell (base) */
@@ -2850,6 +2854,23 @@ h1, h2, h3, .tk-title, .vg-q, .hv2-h1, .today-page h2, .close-cards b { font-fam
 .rs-lin span { font-size: 11px; color: #6b7681; }
 .rs-lin-a { align-self: center; color: var(--brand); font-weight: 700; }
 
+/* ------------------------------------------------------------ compact app chrome so whole screens fit the left pane */
+.lx-gh { height: 36px; }
+.lx-nav, .lx-tab { height: 33px; }
+.lx-body { padding: 8px 10px 10px; gap: 8px; }
+.lx-card-h { padding: 8px 12px 3px; }
+.lx-card-b { padding: 5px 12px 10px; }
+.lx-dt th, .lx-dt td { padding: 5px 8px; }
+.rs-grid2 { gap: 8px; }
+.lx-body > .rs-grid2 { margin-top: 0; }
+.rs-note.clamp { max-height: calc(1.55em * 4 + 8px); padding-bottom: 0; overflow: hidden; -webkit-mask-image: linear-gradient(#000 62%, transparent); mask-image: linear-gradient(#000 62%, transparent); }
+.rs-more { font-size: 11.5px; color: var(--sf-mut); padding: 5px 8px 0; }
+.af-agent.inline { padding: 3px 8px; }
+.af-agent.inline small { display: inline; margin-left: 5px; }
+.cr-tl.inline div { grid-template-columns: 36px auto 1fr; align-items: baseline; }
+.cr-tl.inline span { grid-row: auto; }
+.cr-tl.inline small { margin-left: 4px; }
+
 /* ------------------------------------------------------------ phones and narrow tablets: stack the split, scale the device screens */
 @media (max-width: 760px) {
   html, body { height: auto; }
@@ -2866,7 +2887,8 @@ h1, h2, h3, .tk-title, .vg-q, .hv2-h1, .today-page h2, .close-cards b { font-fam
   .tk-nav { flex-wrap: wrap; gap: 6px; }
   .stage { display: block; }
   .left { overflow: visible; padding: 14px 8px 18px; justify-content: flex-start; }
-  .left-desc { position: static; width: 100%; }
+  .left-desc { width: 100%; }
+  .left-fit { overflow: visible; }
   .device.laptop { width: 720px; max-width: none; zoom: .5; }
   .device.phone { zoom: .9; }
   .left-ui .duo, .left-ui [class*="duo"] { flex-wrap: wrap; justify-content: center; }
