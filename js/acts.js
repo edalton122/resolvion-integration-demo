@@ -128,11 +128,31 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "16:14:03",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Policy \u00b7 pii.lender-notes", lines: ["If the payload contains borrower identifiers \u2192 on-site model", D.fabric.policy.rule, "Every decision logged with caller, model and tokens"], tap, step: i }),
+          left: (tap, i = 0) => S.fabric({ view: "policy", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click the policy to see what it matches.", path: ["reg", "fabric"], tag: ["fabric", "match: borrower PII"], eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 detectors account, address, location \u00b7 3 matches", exec: "The policy spots borrower details in the note" },
-            { tap: "next", cap: "Click the decision.", path: ["fabric", "onprem"], tag: ["onprem", "routed \u00b7 on-site"], eng: `agent-fabric \u00b7 decision ROUTE on-site model \u00b7 cloud models blocked \u00b7 ${D.fabric.policy.id}`, exec: "So it goes to the on-site model, every time" },
+            {
+              tap: "next", cap: "Click the pii.lender-notes policy to see what it matched in the note.", path: ["reg", "fabric"], tag: ["fabric", "match: 3 identifiers"],
+              eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 detectors account, address, location \u00b7 3 matches", exec: "The policy spots borrower details in the note",
+              after: async () => C.payload({
+                left: { title: "Request \u00b7 notes-normalize-papi", obj: { caller: "notes-normalize-papi", task: "normalize lender note", requested_model: "any", payload: "ACCT \u2022\u2022-\u2022\u2022\u2022\u2022-882 / ... EMPLOYER LOT ... CONFIRMED NEW ADDR ..." }, hl: ["payload"] },
+                right: { title: "Policy evaluation", obj: { policy: "pii.lender-notes", matches: ["account number", "location", "address"], decision: "ROUTE", model: "on-site", cloud_models: "blocked", logged: true }, hl: ["decision", "model", "cloud_models"] },
+                mapTitle: "Why this is a policy, not code",
+                map: [["Written once", "Policy Catalog", "versioned, reviewed"], ["Applies to", "every agent and model call", "not just one app"], ["Every decision", "on the audit trail", "caller, model, tokens"]],
+              }),
+            },
+            {
+              tap: "next", cap: "Click View decision.", path: ["fabric", "onprem"], tag: ["onprem", "routed \u00b7 on-site"],
+              eng: `agent-fabric \u00b7 decision ROUTE on-site model \u00b7 cloud models blocked \u00b7 also enforced: ${D.fabric.policy.id}`, exec: "So it goes to the on-site model, every time",
+              after: async () => C.extra(listCard("Who the policy covers", [
+                ["notes-normalize-papi", "Lender notes", "routed on-site", "ok"],
+                ["Case Evaluation Agent", "Case history with borrower details", "routed on-site", "ok"],
+                ["Order Evaluation Agent", "Order summaries, no PII", "passes to cloud"],
+                ["Any new agent", "Covered on day one", "no code change"],
+              ])),
+            },
           ],
+          done: "One rule, every caller, every time, with the decision on the audit trail.",
+          clockStrip: [{ l: "PII to cloud", v: "0", state: "ok" }, { l: "Callers covered", v: "all" }, { l: "Rules in app code", v: "0" }, { l: "Decisions logged", v: "every one" }],
         });
       },
     },
@@ -146,9 +166,27 @@ window.Acts = (function () {
           clock: "16:15:00",
           left: (tap, i = 0) => S.platform({ view: "lifecycle", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click the lender\u2019s status code.", path: ["lender", "s-intake", "p-intake"], tag: ["s-intake", "PLACED \u2192 ASSIGNED"], eng: "client-intake-sapi \u00b7 lender status PLACED \u2192 canonical ASSIGNED", exec: "The lender\u2019s code becomes Resolvion\u2019s standard status" },
-            { tap: "next", cap: "Now the agent network\u2019s status.", path: ["rdn", "s-rdn", "p-events"], tag: ["s-rdn", "On Hold \u2192 HOLD"], eng: "rdn-sapi \u00b7 status On Hold \u2192 canonical HOLD", exec: "Same status, same word, whatever the source" },
+            {
+              tap: "next", cap: "Click the lender\u2019s status code.", path: ["lender", "s-intake", "p-intake"], tag: ["s-intake", "PLACED \u2192 ASSIGNED"],
+              eng: "client-intake-sapi \u00b7 lender status PLACED \u2192 canonical ASSIGNED", exec: "The lender\u2019s code becomes Resolvion\u2019s standard status",
+              after: async (x) => C.transform(D.statusMap.map((r) => ["LAF-v3 status", r.lender, "lifecycle", r.canon]), x.t, { script: "client-intake-sapi \u00b7 Lakeshore status \u2192 canonical", pace: 200 }),
+            },
+            {
+              tap: "next", cap: "Now the agent network\u2019s status.", path: ["rdn", "s-rdn", "p-events"], tag: ["s-rdn", "On Hold \u2192 HOLD"],
+              eng: "rdn-sapi \u00b7 status On Hold \u2192 canonical HOLD", exec: "Same status, same word, whatever the source",
+              after: async (x) => {
+                C.extra("");
+                await C.transform(D.statusMap.map((r) => ["RDN status", r.rdn, "lifecycle", r.canon]), x.t, { script: "rdn-sapi \u00b7 agent network status \u2192 canonical", pace: 200 });
+                C.extra(listCard("Mapped once per source", [
+                  ["Lenders", "One map per lender format", "dozens of formats (illustrative)"],
+                  ["Agent network", "RDN statuses", "rdn-sapi"],
+                  ["Client portal", "Portal statuses", "client-status-eapi"],
+                  ["Downstream", "Reports, agents, APIs, Tableau", "all speak one lifecycle", "ok"],
+                ]));
+              },
+            },
           ],
+          done: "Every source speaks one lifecycle, from Assigned to Recovered.",
         });
       },
     },
@@ -248,8 +286,36 @@ window.Acts = (function () {
           clock: "10:00:00",
           left: (tap, i = 0) => S.platform({ view: "recon", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click Run reconciliation.", path: ["azure", "s-azure", "p-sync", "s-legacy", "legacy"], tag: ["p-sync", "18,204 = 18,204 \u2713"], eng: "assignment-sync-papi \u00b7 nightly recon \u00b7 azure 18,204 lines \u00b7 legacy 18,204 lines \u00b7 0 differences", exec: "Both systems agree, line for line" },
+            {
+              tap: "next", cap: "Click Run reconciliation.", path: ["azure", "s-azure", "p-sync", "s-legacy", "legacy"], tag: ["p-sync", "18,204 = 18,204 \u2713"],
+              eng: "assignment-sync-papi \u00b7 nightly recon \u00b7 azure 18,204 lines \u00b7 legacy 18,204 lines \u00b7 0 differences", exec: "Both systems agree, line for line",
+              after: async (x) => {
+                await C.log([
+                  { lvl: "info", at: "10:00:00", raw: "scheduler recon-nightly start \u00b7 window 2026-11-17", exec: "The nightly check starts on its own" },
+                  { lvl: "info", raw: "azure-platform-sapi fee_lines=18,204 hash=9f3a\u2026c21e", exec: "Counts and fingerprints the new platform" },
+                  { lvl: "info", raw: "legacy-erp-sapi INV_LINE=18,204 hash=9f3a\u2026c21e", exec: "Same for the legacy ERP" },
+                  { lvl: "ok", raw: "recon-nightly complete \u00b7 0 differences \u00b7 report \u2192 billing ops", exec: "No differences; the report goes to billing" },
+                ], x.t);
+                C.extra(listCard("Last night\u2019s report", [
+                  ["Fee lines", "18,204 = 18,204", "count", "ok"],
+                  ["Fee totals", "hashes match", "amounts never leave masked", "ok"],
+                  ["Open assignments", "212,880 = 212,880", "status by status", "ok"],
+                  ["Spreadsheet checks", "none", "replaced"],
+                ]));
+              },
+            },
+            {
+              tap: "next", cap: "Click View lineage to trace one fee line end to end.", path: ["azure", "s-azure", "p-sync", "s-legacy", "legacy"], tag: ["p-sync", "lineage \u00b7 run 7f21"],
+              eng: `lineage \u00b7 fee_line #88412 \u2192 assignment-sync-papi run 7f21 \u2192 ${D.invoice.id} line 14`, exec: "Any line traces from Azure to the ERP row",
+              after: async () => C.extra(linCard("Lineage \u00b7 fee line REC-FEE", [
+                ["Azure SQL", "fee_line #88412", "posted Tue 9:30 AM"],
+                ["assignment-sync-papi", "FeeLine \u2192 invoice line", "run 7f21 \u00b7 2.3 s"],
+                ["Legacy ERP", `${D.invoice.id} \u00b7 line 14`, "SQL Server"],
+              ], ["Catalogued in", "Anypoint Exchange", "the mapping is documented, not tribal"])),
+            },
           ],
+          done: "Two systems of record, proven to agree every night.",
+          clockStrip: [{ l: "Differences", v: "0", state: "ok" }, { l: "Lines checked", n: 18204, v: "{n}" }, { l: "Runs", v: "nightly, 2 AM" }, { l: "Spreadsheets", v: "0" }],
         });
       },
     },
@@ -265,9 +331,29 @@ window.Acts = (function () {
           clock: "16:16:00",
           left: (tap, i = 0) => S.platform({ view: "dispatch", stage: i, tap }),
           beats: [
-            { tap: "select", cap: "Click Select agent.", path: ["p-sync", "p-events"], tag: ["p-events", "Coastal Recovery \u00b7 88"], eng: "dispatch-papi \u00b7 12 agents in range \u00b7 score \u00d7 distance \u00b7 winner AG-0612 Coastal Recovery Co. (11.4 mi, 88)", exec: "Coastal Recovery is the best match" },
-            { tap: "push", cap: "Click Push to agent network.", path: ["p-events", "s-rdn", "rdn"], tag: ["rdn", "assigned \u00b7 201"], eng: "rdn-sapi \u00b7 POST /cases \u00b7 201 Created \u00b7 acceptance clock started (2 hrs)", exec: "The case is on the agent\u2019s board; the 2-hour clock starts" },
+            {
+              tap: "select", cap: "Click Select agent.", path: ["p-sync", "p-events"], tag: ["p-events", "Coastal Recovery \u00b7 88"],
+              eng: "dispatch-papi \u00b7 12 agents in range \u00b7 score \u00d7 distance \u00b7 winner AG-0612 Coastal Recovery Co. (11.4 mi, 88)", exec: "Coastal Recovery is the best match",
+              after: async () => C.extra(listCard("Selection \u00b7 Resolvion\u2019s rules, run on governed data", [
+                ["Coastal Recovery Co.", "Score 88 \u00b7 11.4 mi", "best balance", "ok"],
+                ["Palm Valley Adjusters", "Score 91 \u00b7 23.0 mi", "too far from target"],
+                ["Harbor Point Recovery", "Score 79 \u00b7 17.2 mi", "lower score"],
+                ["Inland Empire Recovery", "Score 74 \u00b7 8.9 mi", "closest, lowest score"],
+              ])),
+            },
+            {
+              tap: "push", cap: "Click Push to agent network.", path: ["p-events", "s-rdn", "rdn"], tag: ["rdn", "assigned \u00b7 201"],
+              eng: "rdn-sapi \u00b7 POST /cases \u00b7 201 Created \u00b7 acceptance clock started (2 hrs)", exec: "The case is on the agent\u2019s board; the 2-hour clock starts",
+              after: async () => C.payload({
+                left: { title: "rdn-sapi \u00b7 POST /cases", obj: { assignment_id: A.id, agent_id: "AG-0612", collateral: `${D.vehicle.year} HONDA ACCORD EX \u00b7 GRAY`, vin: D.vehicle.vinMasked, contact_restriction: "NO_CONTACT_WORK", personal_property_flag: true, borrower: "tokenized" }, hl: ["agent_id", "contact_restriction"] },
+                right: { title: "Agent network \u00b7 201 Created", obj: { case_id: "RDN-7715203", status: "New / Open", acceptance_due: "2 hrs", pushed_to: "Coastal Recovery Co." }, hl: ["case_id", "acceptance_due"] },
+                mapTitle: "What travels with the case",
+                map: [["contact_restriction", "Do not contact at work", "from the lender\u2019s note"], ["personal_property_flag", "Child seat", "so the agent inventories it"], ["borrower", "tokenized", "no raw PII to the network"]],
+              }),
+            },
           ],
+          done: "Resolvion\u2019s rules pick the agent; one governed call puts the case on their board.",
+          clockStrip: [{ l: "Agents scored", v: "12" }, { l: "Selected", v: "Coastal \u00b7 88" }, { l: "Acceptance clock", v: "2 hrs" }, { l: "Raw PII sent", v: "0", state: "ok" }],
         });
       },
     },
@@ -311,8 +397,23 @@ window.Acts = (function () {
           clock: "17:05:00",
           left: (tap, i = 0) => S.platform({ view: "audit", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click Release.", path: ["p-events", "p-sync", "e-status", "lenders"], tag: ["lenders", "RELEASED \u00b7 ack"], eng: "hold-close-papi \u00b7 RELEASE \u00b7 agent ack 9:05:14 \u00b7 client-status-eapi \u2192 LAF-2207", exec: "Released, acknowledged, and the lender sees it" },
+            {
+              tap: "next", cap: "Thursday morning the lender releases the hold. Click Release.", path: ["lender", "s-intake", "p-intake", "p-sync", "p-events", "e-agent", "agentapp"], tag: ["agentapp", "RELEASE delivered \u00b7 4 s"],
+              eng: "hold-close-papi \u00b7 lender RLS \u2192 RELEASE \u00b7 anypoint-mq hold-events \u00b7 push AG-0612 \u00b7 9:05:02 \u2192 9:05:06", exec: "The release reaches the agent the same way the hold did",
+              after: async (x) => {
+                await C.packet(["agentapp", "e-agent", "p-events", "p-sync", "e-status", "lenders"], x.t, { dur: 380 });
+                C.node("lenders", "ok");
+                C.extra(linCard("Release timeline \u00b7 same path as the hold", [
+                  ["9:05:02", "Lender issues RELEASE", "client-intake-sapi"],
+                  ["9:05:03", "Persisted on hold-events", "Anypoint MQ"],
+                  ["9:05:06", "On the agent\u2019s phone", "hold-close-papi"],
+                  ["9:05:14", "Acknowledged", "Lakeshore sees it"],
+                ]));
+              },
+            },
           ],
+          done: "Holds, releases and closes ride one path, with one audit trail.",
+          clockStrip: [{ l: "Lender to truck", v: "4 s", state: "ok" }, { l: "Acknowledged", v: "12 s" }, { l: "Paths to maintain", v: "1" }, { l: "Audit", v: "every step" }],
         });
       },
     },
@@ -326,10 +427,29 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "10:32:00",
-          left: (tap, i = 0) => S.stub("agent", { app: "Agent app", title: "Recovered \u00b7 submit report", lines: ["12 photos \u00b7 condition report", "Personal property: child seat (flagged by the lender), phone charger", "Oceanside lot \u00b7 in storage"], tap, step: i }),
+          left: (tap, i = 0) => S.agentReport({ stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click Submit.", path: ["rdn", "s-rdn", "p-events", "p-sync", "s-azure", "azure"], tag: ["azure", "RECOVERED \u00b7 3h 12m of 4h"], eng: "recovery-event-papi \u00b7 RECOVERED \u00b7 condition_report + 12 photos + 2 property items \u00b7 3h 12m after recovery", exec: "Recovery details arrive inside the 4-hour standard" },
+            {
+              tap: "next", cap: "Coastal Recovery has the photos, condition and property inventory done. Click Submit report.", path: ["agentapp", "e-agent", "p-events", "p-sync", "s-azure", "azure"], tag: ["azure", "RECOVERED \u00b7 3h 12m of 4h"],
+              eng: "recovery-event-papi \u00b7 RECOVERED \u00b7 condition_report + 12 photos + 2 property items \u00b7 3h 12m after recovery", exec: "Recovery details arrive inside the 4-hour standard",
+              after: async (x) => {
+                C.caption("The same event fans out to the lender, accounting and reporting.");
+                await Promise.all([
+                  C.packet(["p-sync", "e-status", "lenders"], x.t),
+                  C.packet(["p-sync", "s-legacy", "legacy"], x.t),
+                  C.packet(["p-sync", "tab"], x.t),
+                ]);
+                C.node("lenders", "ok"); C.node("legacy", "ok"); C.node("tab", "ok");
+                C.payload({
+                  left: { title: "Agent app \u00b7 report (as entered)", obj: { assignment_id: A.id, recovered_at: "Thu 11:20 PM", photos: 12, condition: { exterior: "scratch, rear bumper", interior: "clean", keys: "1 of 2" }, personal_property: ["child seat", "phone charger"], storage: "Oceanside lot" }, hl: ["personal_property"] },
+                  right: { title: "Canonical RecoveryEvent v1", obj: { type: "RECOVERED", assignment_id: A.id, report_on_time: true, minutes_to_report: 192, property_items: 2, lender_flag_matched: "child seat", destinations: ["lender", "platform", "accounting", "reporting"] }, hl: ["report_on_time", "lender_flag_matched"] },
+                  map: [["recovered_at + submitted", "minutes_to_report 192", "vs the 4-hour standard"], ["child seat", "lender_flag_matched", "the lender asked; the agent confirmed"], ["one report", "four destinations", "entered once"]],
+                });
+              },
+            },
           ],
+          done: "Entered once on the lot; the lender, platform, accounting and reporting all have it inside 4 hours.",
+          clockStrip: [{ l: "Report time", v: "3h 12m", s: "of a 4-hour standard", state: "ok" }, { l: "Entered", v: "once" }, { l: "Destinations", v: "4" }, { l: "Property items", v: "2", s: "1 flagged by lender" }],
         });
       },
     },
@@ -341,11 +461,30 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "10:33:00",
-          left: (tap, i = 0) => S.platform({ view: "billing", stage: 2 + i, tap }),
+          left: (tap, i = 0) => S.platform({ view: "billing", stage: 2 + i, tap, asg: A.id }),
           beats: [
-            { tap: "next", cap: "Click to follow the fee lines.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", "4 invoice lines"], eng: `assignment-sync-papi \u00b7 4 FeeLine \u2192 ${D.invoice.id} \u00b7 reused bridge`, exec: "Fees land on the client invoice, over the same bridge" },
-            { tap: "next", cap: "And the metrics.", path: ["p-sync", "tab"], tag: ["tab", "SLA metrics updated"], eng: "tableau \u00b7 recovery_sla published \u00b7 report_on_time 3h12m \u2264 4h", exec: "Reporting has it without anyone exporting it" },
+            {
+              tap: "next", cap: "Click Continue to follow the recovery fees.", path: ["azure", "s-azure", "p-sync", "s-legacy", "legacy"], tag: ["p-sync", "4 invoice lines \u00b7 reused bridge"],
+              eng: `assignment-sync-papi \u00b7 4 FeeLine \u2192 ${D.invoice.id} \u00b7 reused bridge from chapter 2`, exec: "Fees land on the client invoice, over the same bridge",
+              after: async (x) => {
+                await C.transform(D.feeLines.map((f, i) => [f.code, f.label, `INV_LINE ${15 + i}`, f.code.replace("-", "").slice(0, 8)]), x.t, { script: `assignment-sync-papi \u00b7 recovery fees \u2192 ${D.invoice.id}`, pace: 180 });
+                await C.packet(["p-sync", "e-status", "lenders"], x.t);
+                C.tag("lenders", "status: RECOVERED", "ok");
+              },
+            },
+            {
+              tap: "next", cap: "And the metrics.", path: ["p-sync", "tab"], tag: ["tab", "SLA metrics updated"],
+              eng: "tableau \u00b7 recovery_sla published \u00b7 report_on_time 3h12m \u2264 4h", exec: "Reporting has it without anyone exporting it",
+              after: async () => C.extra(listCard("Reused, not rebuilt", [
+                ["Fees to accounting", "assignment-sync-papi", "built in chapter 2", "ok"],
+                ["Status to the lender", "client-status-eapi", "built in chapter 3", "ok"],
+                ["Metrics to Tableau", "recovery_sla (certified)", "feeds chapters 7 and 8", "ok"],
+                ["New integration code", "none for this event", "reuse"],
+              ])),
+            },
           ],
+          done: "One recovery event, three destinations, zero new integrations.",
+          clockStrip: [{ l: "Invoice lines", v: "4" }, { l: "Lender status", v: "RECOVERED", state: "ok" }, { l: "Metrics", v: "live" }, { l: "New integrations", v: "0", state: "ok" }],
         });
       },
     },
@@ -402,10 +541,25 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "16:11:00",
-          left: (tap, i = 0) => S.stub("borrower", { app: "Fin \u00b7 chat", title: "\u201cThis repossession is a mistake.\u201d", lines: ["Dispute detected \u2192 escalation rule CS-04", "Handed to a person with transcript + assignment", "Wait time: under 2 min"], tap, step: i }),
+          left: (tap, i = 0) => S.finEscalate({ stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click to escalate.", path: ["fin", "e-borrower", "p-sync"], tag: ["e-borrower", "handoff \u00b7 context attached"], eng: "fin \u00b7 escalation CS-04 dispute \u00b7 context: verified identity, assignment, transcript", exec: "A person picks up with everything Fin already knows" },
+            {
+              tap: "next", cap: "The caller disputes the repossession, which is out of scope for Fin. Click Escalate to a person.", path: ["fin", "e-borrower", "p-sync"], tag: ["e-borrower", "handoff \u00b7 context attached"],
+              eng: "fin \u00b7 procedure branch dispute \u00b7 escalation rule CS-04 \u00b7 context: verified identity, assignment, transcript", exec: "Fin hands off instead of guessing",
+              after: async () => C.payload({
+                left: { title: "Fin \u00b7 handoff (to the specialist queue)", obj: { rule: "CS-04 dispute", identity: "verified (last 4 + ZIP)", assignment_id: A.id, transcript_turns: 4, sentiment: "upset", reason: "says payment made last week" }, hl: ["rule", "identity", "reason"] },
+                right: { title: "borrower-service-eapi \u00b7 case context", obj: { lender: D.lender.name, status: "RECOVERED", lot: "Oceanside lot", hold_history: "HOLD Wed \u00b7 RELEASE Thu", escalation: "CREDIT_MGR_BEFORE_RELEASE", borrower: "masked" }, hl: ["hold_history", "escalation"] },
+                mapTitle: "What the specialist sees before saying hello",
+                map: [["Verified identity", "no re-verification", "from Fin"], ["Hold and release history", "the payment question in context", "from the audit trail"], ["Lender\u2019s escalation rule", "call the credit manager", "from the lender\u2019s note"]],
+              }),
+            },
+            {
+              tap: "next", cap: "A specialist is free. Click Specialist: accept.", path: ["p-sync", "e-borrower", "fin"], tag: ["fin", "picked up \u00b7 1:12 wait"],
+              eng: "specialist queue \u00b7 accepted \u00b7 wait 1:12 (illustrative) \u00b7 context preloaded", exec: "A person picks up with everything Fin already knows",
+            },
           ],
+          done: "Disputes go to a person, and the person doesn\u2019t start from zero.",
+          clockStrip: [{ l: "Wait", v: "1:12", s: "illustrative" }, { l: "Re-verification", v: "none" }, { l: "Context passed", v: "full", state: "ok" }, { l: "Rule", v: "CS-04 dispute" }],
         });
       },
     },
@@ -413,14 +567,39 @@ window.Acts = (function () {
       id: "5.3", act: "5", short: false, title: "Disclosures, ID checks and masked logs on every call",
       desc: "Every call follows the scripted disclosures and ID checks, and borrower PII is masked in every MuleSoft log.",
       why: "Compliance by design: CFPB, FTC, FDCPA, GLBA and UDAAP rules, and your call monitoring program, are why masking, scripts and audit matter.",
-      powered: ["Fin", "Omni Gateway PII masking for logs", "Audit trail"],
+      powered: ["Fin", "Omni Gateway PII masking", "Audit trail"],
       async run(x) {
         await sketch(x, {
           clock: "16:12:00",
-          left: (tap, i = 0) => S.stub("cs", { app: "Customer Service", title: "Call compliance", lines: ["Disclosure read: every call (illustrative script)", "ID verified before any vehicle detail", "PII masked in logs: account, address, phone"], tap, step: i }),
+          left: (tap, i = 0) => S.callReview({ stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click to view the log.", path: ["fin", "e-borrower"], tag: ["e-borrower", "account \u2022\u2022\u2022\u2022882"], eng: "omni-gateway \u00b7 pii-masking \u00b7 fields account, address, phone masked before logging", exec: "No borrower PII in the logs" },
+            {
+              tap: "next", cap: "Every call shows its checks. Click the 8:05 AM call to see them in order.", path: ["fin", "e-borrower"], tag: ["e-borrower", "account \u2022\u2022\u2022\u2022882"],
+              eng: "omni-gateway \u00b7 pii-masking \u00b7 fields account, zip, phone masked before logging \u00b7 borrower-service-eapi", exec: "No borrower PII in the logs",
+              after: async (x) => {
+                C.tab("logs");
+                await C.log([
+                  { lvl: "info", raw: "borrower-service-eapi GET /assignments/{id}/vehicle-status account=\u2022\u2022\u2022\u2022882 zip=\u2022\u2022\u2022\u202201", exec: "Fin\u2019s lookup, masked" },
+                  { lvl: "info", raw: "borrower-service-eapi POST /property-pickups phone=(\u2022\u2022\u2022) \u2022\u2022\u2022-\u2022\u202241 window=Thu 09:00-11:00", exec: "The booking, masked" },
+                  { lvl: "ok", raw: "omni-gateway pii-masking policy v2 \u00b7 3 fields masked \u00b7 0 raw values written", exec: "Nothing raw is written" },
+                ], x.t);
+                await x.sleep(600);
+                C.tab("flow");
+              },
+            },
+            {
+              tap: "next", cap: "Click Export for call monitoring.", path: ["e-borrower", "p-sync"], tag: ["p-sync", "export \u00b7 masked"],
+              eng: "audit export \u00b7 call 8:05 AM \u00b7 checks + timestamps \u00b7 PII masked", exec: "Ready for the call monitoring program",
+              after: async () => C.extra(listCard("Compliance by design", [
+                ["ID check", "Before any vehicle detail", "every call", "ok"],
+                ["Disclosures", "Scripted, timestamped", "illustrative script", "ok"],
+                ["Logs", "PII masked by policy", "Omni Gateway", "ok"],
+                ["Regulations", "CFPB, FTC, FDCPA, GLBA, UDAAP", "why it matters, not a legal claim"],
+              ])),
+            },
           ],
+          done: "Every call verified, disclosed and logged without borrower PII.",
+          clockStrip: [{ l: "ID checked first", v: "100%", state: "ok" }, { l: "Disclosure read", v: "100%", state: "ok" }, { l: "Raw PII in logs", v: "0", state: "ok" }, { l: "Calls today", v: "312", s: "illustrative" }],
         });
       },
     },
@@ -504,10 +683,28 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "18:08:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "Policy decision", lines: ["Caller: Case Evaluation Agent", D.fabric.policy.rule, "Decision: BLOCK cloud model \u00b7 reroute on-site"], tap, step: i, alert: i >= 1 }),
+          left: (tap, i = 0) => S.fabric({ view: "decision", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click the request.", path: ["reg", "fabric", "ext"], err: true, tag: ["ext", "blocked \u00b7 lender rule", "err"], eng: `policy ${D.fabric.policy.id} \u00b7 DENY cloud model \u00b7 reroute \u2192 on-site model`, exec: "Lakeshore\u2019s rule holds, automatically" },
+            {
+              tap: "next", cap: "An agent asks a cloud model to summarize a Lakeshore case. Click Evaluate.", path: ["reg", "fabric", "ext"], err: true, tag: ["ext", "blocked \u00b7 lender rule", "err"],
+              eng: `policy ${D.fabric.policy.id} \u00b7 DENY cloud model \u00b7 reroute \u2192 on-site model`, exec: "Lakeshore\u2019s rule holds, automatically",
+              after: async (x) => {
+                await C.packet(["fabric", "onprem"], x.t);
+                C.tag("onprem", "rerouted \u00b7 answered", "ok");
+              },
+            },
+            {
+              tap: "next", cap: "Click View audit entry.", path: ["fabric", "reg"], tag: ["reg", "audit \u00b7 exportable"],
+              eng: `audit \u00b7 DENY cloud \u00b7 REROUTE on-site \u00b7 caller case-evaluation-agent \u00b7 lender LAF-2207 \u00b7 data sent to cloud: none`, exec: "Provable to the lender, on request",
+              after: async () => C.extra(listCard("Per-lender rules, enforced centrally", [
+                ["Lakeshore (sample)", "Borrower PII stays on-site", "enforced: blocked 1, rerouted 1", "ok"],
+                ["Every agent", "Same rule, no per-app code", "Policy Catalog"],
+                ["Client audits", "Decision log exportable", "who, what, which model"],
+              ])),
+            },
           ],
+          done: "Every client\u2019s rules honored for every agent, with proof.",
+          clockStrip: [{ l: "Cloud calls blocked", v: "1" }, { l: "Rerouted on-site", v: "1", state: "ok" }, { l: "Lakeshore data to cloud", v: "0", state: "ok" }, { l: "Per-app code", v: "0" }],
         });
       },
     },
@@ -567,10 +764,25 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "15:30:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Tableau Pulse", title: "Monday digest", lines: ["Condition-report SLA up 3 pts week over week", "SoCal acceptance time down to 41 min", "Holds delivered: median 4 s"], tap, step: i }),
+          left: (tap, i = 0) => S.pulse({ stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click the digest.", path: ["p-sync", "tab"], tag: ["tab", "digest sent"], eng: "pulse \u00b7 3 metrics \u00b7 weekly digest \u00b7 7:30 AM", exec: "The numbers come to the leader" },
+            {
+              tap: "next", cap: "Monday, 7:30 AM. The digest lands on Marcus\u2019s phone. Tap it.", path: ["p-sync", "tab"], tag: ["tab", "digest sent \u00b7 3 metrics"],
+              eng: "pulse \u00b7 weekly digest \u00b7 3 followed metrics \u00b7 source recovery_sla + agent_sla (certified) \u00b7 7:30 AM", exec: "The numbers come to the leader",
+            },
+            {
+              tap: "next", cap: "Condition report on time is up 3 points. Tap it to see why.", path: ["tab", "p-sync"], tag: ["tab", "insight \u00b7 top contributors"],
+              eng: "pulse \u00b7 metric report_on_time \u00b7 insight: top contributors by region \u00b7 SoCal +5 pts", exec: "Not just what moved, but why",
+              after: async () => C.extra(listCard("For the leaders who only view", [
+                ["Who it\u2019s for", "About 90% of Tableau users only view", "execs, managers", "ok"],
+                ["What they get", "What moved and why, in plain language", "no dashboard to open"],
+                ["Where it comes from", "The same certified sources as chapter 7", "fed by the MuleSoft flows"],
+                ["Licensing", "Included in your Tableau licensing", "ready to turn on"],
+              ])),
+            },
           ],
+          done: "The insight comes to the leader, on the same governed numbers.",
+          clockStrip: [{ l: "Metrics followed", v: "3" }, { l: "Biggest mover", v: "+3 pts", s: "report on time", state: "ok" }, { l: "Dashboards opened", v: "0" }, { l: "Delivered", v: "Mon 7:30 AM" }],
         });
       },
     },
@@ -624,10 +836,25 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "17:02:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Tableau Cloud", title: "Row-level security", lines: ["agent_id = USERNAME() entitlement", "Peers shown anonymized only", "Lenders: no analytics access"], tap, step: i }),
+          left: (tap, i = 0) => S.tabRls({ stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click to view as another agent.", path: ["p-sync", "tab"], tag: ["tab", "RLS \u00b7 own data only"], eng: "tableau \u00b7 RLS agent_id = USERNAME() \u00b7 peers anonymized", exec: "Each agent sees only their own data" },
+            {
+              tap: "next", cap: "This is Coastal Recovery\u2019s view. Click View as Mesa Ridge Recovery.", path: ["tab", "p-sync", "p-events", "e-agent", "agentapp"], tag: ["agentapp", "AG-0377 \u00b7 own row only"],
+              eng: "tableau embedded \u00b7 RLS agent_id = USERNAME() \u00b7 AG-0377 \u00b7 peers anonymized (Coastal \u2192 Agent D)", exec: "Another agent, only their own numbers",
+            },
+            {
+              tap: "next", cap: "Now try the lender. Click View as the lender.", path: ["lenders", "e-status", "p-sync", "tab"], err: true, tag: ["tab", "lender \u00b7 no access", "err"],
+              eng: "tableau \u00b7 user lender_LAF-2207 \u00b7 no grant on agent_scorecard \u00b7 403", exec: "Lenders get no analytics access",
+              after: async () => C.extra(listCard("One embedded dashboard, every agent", [
+                ["600+ agents", "Each with their own login", "agent_id = USERNAME()", "ok"],
+                ["Peers", "Always anonymized", "Agent A, B, C\u2026"],
+                ["Lender clients", "No analytics access", "status comes via client-status-eapi", "err"],
+                ["Exports to maintain", "none", "one governed view"],
+              ])),
+            },
           ],
+          done: "One governed dashboard, not 600 exports, and nothing for the lenders.",
+          clockStrip: [{ l: "Agents served", v: "600+" }, { l: "Rows each agent sees", v: "1 (their own)", state: "ok" }, { l: "Peers named", v: "0", state: "ok" }, { l: "Lender access", v: "none" }],
         });
       },
     },

@@ -110,7 +110,7 @@ window.Screens = (function () {
   function platform(o = {}) {
     const st = o.stage || 0, tap = o.tap;
     const V = VIEWS[o.view] || VIEWS.intake;
-    return V(st, tap);
+    return V(st, tap, o);
   }
 
   const VIEWS = {
@@ -151,7 +151,8 @@ window.Screens = (function () {
       return plat("Assignments", `${pageHead("var(--brand)", SVG.doc, "Canonical lifecycle", "One status vocabulary", btn("Export mapping"), "Mapped once per source in DataWeave")}${card("Status mapping", table(cols, rows))}${card("Lifecycle", lifecyclePath(st >= 2 ? "hold" : "assigned"))}`);
     },
 
-    billing(st, tap) {
+    billing(st, tap, o = {}) {
+      const AID = o.asg || "RSV-26-0479915";
       const lines = D.feeLines.map((f, i) => ({
         cells: [`<code>${f.code}</code>`, esc(f.label), "\u2022\u2022\u2022.\u2022\u2022", i === 0 ? (st >= 2 ? pill("Synced", "ok") : st >= 1 ? pill("Posted", "new") : pill("Draft")) : pill(st >= 3 ? "Synced" : "Draft", st >= 3 ? "ok" : "")],
         cls: i === 0 && st <= 1 ? "rs-new" : "",
@@ -159,12 +160,12 @@ window.Screens = (function () {
       const I = D.invoice;
       const erp = card(
         `Legacy ERP \u00b7 client invoice ${I.id}`,
-        table(["Line", "Code", "Assignment", "Source"], st >= 2 ? [{ cells: ["14", "REC-FEE", "RSV-26-0479915", "MuleSoft \u00b7 2.3 s"], cls: "rs-in" }, { cells: ["13", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }] : [{ cells: ["13", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }]) +
+        table(["Line", "Code", "Assignment", "Source"], st >= 2 ? [{ cells: ["14", "REC-FEE", AID, "MuleSoft \u00b7 2.3 s"], cls: "rs-in" }, { cells: ["13", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }] : [{ cells: ["13", "STOR-DAY", "RSV-26-0479811", "MuleSoft"] }]) +
           `<div class="rs-chips">${I.next.map((n) => `<span class="rs-pill next">${esc(n)} \u00b7 next</span>`).join("")}</div>`,
         { right: `${I.lender} \u00b7 SQL Server` }
       );
       const action = st === 0 ? btn("Post fee line", tap, "brand") : st === 1 ? btn("Sync to legacy ERP", tap, "brand") : tap ? btn("Continue", tap, "brand") : "";
-      return plat("Billing", `${pageHead("var(--brand)", SVG.ledger, "Fee lines \u00b7 RSV-26-0479915", "Recovered overnight", action, "One way: new platform \u2192 legacy ERP \u00b7 amounts masked")}${card("New platform \u00b7 fee lines", table(["Code", "Line", "Amount", "Status"], lines), { right: "Azure SQL" })}<div class="rs-flow">\u2193 assignment-sync-papi</div>${erp}`, {
+      return plat("Billing", `${pageHead("var(--brand)", SVG.ledger, `Fee lines \u00b7 ${AID}`, o.asg ? "Recovered Thursday night" : "Recovered overnight", action, "One way: new platform \u2192 legacy ERP \u00b7 amounts masked")}${card("New platform \u00b7 fee lines", table(["Code", "Line", "Amount", "Status"], lines), { right: "Azure SQL" })}<div class="rs-flow">\u2193 assignment-sync-papi</div>${erp}`, {
         toast: st >= 2 ? toast("success", "Fee line added to the client invoice in the legacy ERP", `Azure \u2192 assignment-sync-papi \u2192 ${I.id} \u00b7 2.3 s`) : "",
       });
     },
@@ -184,9 +185,10 @@ window.Screens = (function () {
 
     recon(st, tap) {
       const res = st >= 1
-        ? card("Last night \u00b7 2:00 AM", table(["Check", "Azure", "Legacy ERP", "Result"], [{ cells: ["Fee lines", "18,204", "18,204", pill("Match", "ok")] }, { cells: ["Fee total (sample)", "1,904,220.50", "1,904,220.50", pill("Match", "ok")] }, { cells: ["Assignments open", "212,880", "212,880", pill("Match", "ok")] }]))
+        ? card("Last night \u00b7 2:00 AM", table(["Check", "Azure", "Legacy ERP", "Result"], [{ cells: ["Fee lines", "18,204", "18,204", pill("Match", "ok")] }, { cells: ["Fee totals (hash, amounts masked)", "<code>9f3a\u2026c21e</code>", "<code>9f3a\u2026c21e</code>", pill("Match", "ok")] }, { cells: ["Open assignments", "212,880", "212,880", pill("Match", "ok")] }, { cells: ["Quarantined, then posted", "1", "1", pill("Resolved", "ok")] }]), { right: "0 differences" })
         : card("Reconciliation", `<p class="rs-muted">Runs nightly at 2:00 AM. Compares every fee line and assignment status between the new platform and the legacy ERP.</p>`);
-      return plat("Reconciliation", `${pageHead("var(--brand)", SVG.ledger, "Azure \u2192 legacy ERP", "Nightly reconciliation", st === 0 ? btn("Run reconciliation", tap, "brand") : btn("View lineage"))}${res}`);
+      const lin = st >= 2 ? card("Lineage \u00b7 fee line REC-FEE \u00b7 RSV-26-0479915", `<div class="rs-lin">${[["Azure SQL", "fee_line #88412", "posted 9:30 AM"], ["assignment-sync-papi", "FeeLine \u2192 invoice line", "2.3 s \u00b7 run 7f21"], ["Legacy ERP", `${D.invoice.id} \u00b7 line 14`, "SQL Server"]].map(([k, v, s], i) => `${i ? '<span class="rs-lin-a">\u2192</span>' : ""}<div><small>${k}</small><b>${v}</b><span>${s}</span></div>`).join("")}</div>`) : "";
+      return plat("Reconciliation", `${pageHead("var(--brand)", SVG.ledger, "Azure \u2192 legacy ERP", "Nightly reconciliation", st === 0 ? btn("Run reconciliation", tap, "brand") : st === 1 ? btn("View lineage", tap, "brand") : "")}${res}${lin}`);
     },
 
     dispatch(st, tap) {
@@ -294,6 +296,8 @@ window.Screens = (function () {
   /* view: "routing" | "finops"; stage + tap as elsewhere */
   function fabric(o = {}) {
     const st = o.stage || 0, F = D.fabric;
+    if (o.view === "policy") return fabricPolicy(o, st, F);
+    if (o.view === "decision") return fabricDecision(o, st, F);
     if (o.view === "finops") {
       const W = F.wallet;
       const wallets = [
@@ -327,6 +331,166 @@ window.Screens = (function () {
       ${card("Registered \u00b7 discovered by AI Platform Scanners", `<div class="af-agents">${reg}</div>`)}
       ${card("Requests", table(["Caller", "Data", "Routed to"], rows))}${card("Routing rules \u00b7 Policy Catalog", `<div class="af-rules">${rules}</div>`)}`;
     return af("Routing", body);
+  }
+
+  /* Policy Catalog: the PII policy, what it matched in the note, and its decision log (1.2) */
+  function fabricPolicy(o, st, F) {
+    const pols = [
+      { id: "pii.lender-notes", d: "Borrower identifiers \u2192 on-site model only", scope: "All agents \u00b7 all models", hot: true },
+      { id: F.policy.id, d: F.policy.rule, scope: "Lakeshore data \u00b7 all agents" },
+      { id: "route.code", d: "Code tasks \u2192 Claude", scope: "Coding agents" },
+      { id: "route.general", d: "No PII \u2192 lowest-cost capable model", scope: "All agents" },
+    ];
+    const rows = pols.map((p) => ({
+      cells: [`<code>${esc(p.id)}</code>`, esc(p.d), `<small class="af-sub">${esc(p.scope)}</small>`, pill("Enforced", "ok")],
+      tap: p.hot && st === 0 ? o.tap : null,
+      cls: p.hot && st <= 1 ? "rs-new" : "",
+    }));
+    const note = esc(A.rawNote).split("\n").slice(0, 4).join("\n");
+    const marked = A.piiTerms.reduce((t, p) => t.split(esc(p)).join(`<mark class="rs-pii">${esc(p)}</mark>`), note);
+    const detail = st >= 1 ? card("pii.lender-notes", `<div class="pl-rule">
+        <div><small>When</small><b>Payload contains borrower identifiers</b><span>Detectors: account number \u00b7 address \u00b7 location</span></div>
+        <div><small>Then</small><b>Route to the on-site model</b><span>Block every cloud model \u00b7 log the decision</span></div>
+      </div>
+      <div class="pl-match"><small>Matched in the Lakeshore note \u00b7 ${A.piiTerms.length} identifiers</small><p class="rs-note">${marked}\u2026</p></div>
+      ${st === 1 && o.tap ? btn("View decision", o.tap, "brand") : ""}`, { right: "Policy Catalog \u00b7 v3" }) : "";
+    const log = st >= 2 ? card("Decision log", table(["Time (PT)", "Caller", "Decision", "Model"], [
+      { cells: ["8:14:03", "notes-normalize-papi", pill("ROUTE on-site", "ok"), "On-site model \u00b7 812 tokens"], cls: "rs-in" },
+      { cells: ["8:13:41", "Case Evaluation Agent", pill("ROUTE on-site", "ok"), "On-site model \u00b7 1,204 tokens"] },
+      { cells: ["8:12:58", "Order Evaluation Agent", pill("No PII \u00b7 pass"), "OpenAI (enterprise)"] },
+    ]), { right: "every call \u00b7 audit trail" }) : "";
+    const body = `${pageHead("#00A1E0", SVG.shield, "Policy Catalog", "Written once, enforced for every caller", "", "Agents, MCP tools and model calls \u00b7 nothing hard-coded in one app")}
+      ${card("Policies", table(["Policy", "Rule", "Applies to", ""], rows))}${detail}${log}`;
+    return af("Policies", body);
+  }
+
+  /* A live policy decision: Lakeshore's rule blocks a cloud call and reroutes it (6.3) */
+  function fabricDecision(o, st, F) {
+    const req = { cells: ["<b>Case Evaluation Agent</b><small class=\"af-sub\">Summarize case history \u00b7 Lakeshore</small>", pill("PII", "err"), st === 0 ? `<span class="af-route">Evaluate \u203a</span>` : `${pill("OpenAI (enterprise)", "err")} <s class="af-x">requested</s>`], tap: st === 0 ? o.tap : null, cls: st === 0 ? "rs-new" : "" };
+    const deny = st >= 1 ? card("Decision \u00b7 DENY cloud model", `<div class="af-deny">
+        <div><small>Policy</small><b><code>${esc(F.policy.id)}</code></b><span>${esc(F.policy.rule)}</span></div>
+        <div><small>Requested</small><b>OpenAI (enterprise)</b><span>blocked before any data left</span></div>
+        <div><small>Rerouted to</small><b>On-site model</b><span>same request \u00b7 answered</span></div>
+      </div>${st === 1 && o.tap ? btn("View audit entry", o.tap, "brand") : ""}`, { cls: "rs-alert" }) : "";
+    const audit = st >= 2 ? card("Audit entry", kv([["Time", "Fri 10:08:12 AM PT"], ["Caller", "Case Evaluation Agent"], ["Lender", "Lakeshore Auto Finance (LAF-2207)"], ["Decision", "DENY cloud \u00b7 REROUTE on-site"], ["Policy", F.policy.id], ["Data sent to cloud", "<b class=\"rs-ok\">none</b>"]]), { right: "exportable for client audits" }) : "";
+    const body = `${pageHead("#00A1E0", SVG.shield, "Model Proxy", "Policy decisions \u00b7 live", "", "Per-lender rules from the Policy Catalog")}
+      ${card("Incoming request", table(["Caller", "Data", "Model"], [req]))}${deny}${audit}`;
+    return af("Policies", body, { toast: st === 1 ? toast("error", "Cloud call blocked by Lakeshore\u2019s data rule", "Rerouted to the on-site model") : "" });
+  }
+
+  /* ------------------------------------------------------------ Agent app: recovery and condition report (4.1) */
+  function agentReport(o = {}) {
+    const st = o.stage || 0, V = D.vehicle;
+    const photos = Array.from({ length: 12 }, (_, i) => `<span class="ar-ph" style="animation-delay:${i * 40}ms">${i % 4 === 0 ? SVG.car : ""}</span>`).join("");
+    const item = (k, v, flag) => `<div class="ar-it"><span>${esc(k)}</span><b>${v}</b>${flag ? `<em>${esc(flag)}</em>` : ""}</div>`;
+    const ph = phone("agent", `<div class="ra">
+      <div class="ra-top">${rsMark}<b>Agent app</b><span>Coastal Recovery Co.</span></div>
+      <div class="ra-body">
+        ${st >= 1 ? `<div class="ra-ok">${SVG.check} Report submitted 2:32 AM \u00b7 delivered everywhere</div>` : ""}
+        <div class="ra-card">
+          <div class="ra-k">Recovered \u00b7 ${esc(A.id)}</div>
+          <b>${V.year} ${esc(V.make)} ${esc(V.model)} \u00b7 ${esc(V.color)}</b>
+          <div class="ar-sla"><span>Recovered 11:20 PM \u00b7 report due 3:20 AM</span><i><span style="width:80%"></span></i><b>3h 12m of 4h</b></div>
+          <div class="ar-sec">Photos \u00b7 12</div><div class="ar-phs">${photos}</div>
+          <div class="ar-sec">Condition</div>
+          ${item("Exterior", "Scratch, rear bumper")}${item("Interior", "Clean")}${item("Keys", "1 of 2")}
+          <div class="ar-sec">Personal property</div>
+          ${item("Child seat", "Rear seat", "flagged by lender")}${item("Phone charger", "Console")}
+        </div>
+        ${st === 0 && o.tap ? `<button class="sbtn brand block" data-tap="${o.tap}">Submit report</button>` : ""}
+      </div>
+    </div>`, st >= 1 ? "2:32" : "2:31");
+    const dest = [["Lender", "Lakeshore status feed", "client-status-eapi"], ["New platform", "RECOVERED + report", "azure-platform-sapi"], ["Accounting", "Fee lines \u2192 legacy ERP", "assignment-sync-papi"], ["Reporting", "recovery_sla in Tableau", "governed data"]];
+    const side = `<div class="fp"><div class="fp-h"><b>One submit, four destinations</b><small>recovery-event-papi</small></div>
+      ${dest.map(([k, v, s]) => `<div class="fp-s ${st >= 1 ? "done" : ""}"><i>${st >= 1 ? SVG.check : "\u2022"}</i><div><b>${esc(k)}</b><small>${esc(v)} \u00b7 ${esc(s)}</small></div></div>`).join("")}
+      ${st >= 1 ? `<div class="fp-done">${SVG.check} Inside the 4-hour standard</div>` : ""}</div>`;
+    return `<div class="duo"><div class="duo-col">${ph}</div><div class="duo-col side-lp">${side}<div class="duo-note">Entered once, by the agent</div></div></div>`;
+  }
+
+  /* ------------------------------------------------------------ Fin chat: a dispute goes to a person, with context (5.2) */
+  function finEscalate(o = {}) {
+    const st = o.stage || 0;
+    const turns = [
+      ["b", "This repossession is a mistake. I paid last week."],
+      ["f", "I\u2019m sorry, I know this is stressful. To verify your identity, what are the last four digits of your account and your ZIP code?"],
+      ["b", "Eight eight two, nine two five oh one."],
+      ["f", "Thank you, you\u2019re verified. Because you\u2019re disputing the repossession, I\u2019m going to connect you with a Resolvion specialist."],
+    ];
+    if (st >= 1) turns.push(["s", "Connecting you now. They\u2019ll have everything we\u2019ve discussed, so you won\u2019t need to repeat yourself."]);
+    if (st >= 2) turns.push(["h", "Hi, I\u2019m a Resolvion specialist. I can see your payment question and your vehicle details. Let me check with your lender now."]);
+    const ph = phone("borrower", `<div class="fin">
+      <div class="fin-top"><span class="fin-wm">Fin</span><div><b>Resolvion recovery help</b><small>Chat \u00b7 resolvion.com</small></div><span class="fin-live">${st >= 2 ? "\u25cf specialist" : "\u25cf live"}</span></div>
+      <div class="fin-tx">${turns.map(([w, t], i) => `<div class="fin-b ${w === "s" ? "f sys" : w === "h" ? "f hum" : w} ${i >= turns.length - 1 ? "new" : ""}">${w === "h" ? "<small>Specialist</small>" : ""}${esc(t)}</div>`).join("")}</div>
+    </div>`, "8:11");
+    const steps = [["Verify identity", "last 4 of account + ZIP", true], ["Detect dispute", "out of scope for Fin", true], ["Escalate (rule CS-04)", "to a person, with context", st >= 1], ["Specialist accepts", "average wait under 2 min (illustrative)", st >= 2]];
+    const ctx = st >= 1 ? `<div class="fe-ctx"><div class="fe-h">Handoff context</div>
+      ${[["Identity", "Verified \u00b7 last 4 + ZIP"], ["Assignment", A.id], ["Lender", D.lender.name], ["Vehicle", "Recovered Thu \u00b7 Oceanside lot"], ["Reason", "Dispute \u00b7 says payment made last week"], ["Transcript", "4 turns attached"], ["Next step", "Check payment with the lender\u2019s credit manager"]].map(([k, v]) => `<div class="fe-r"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>` : "";
+    const action = st === 0 ? "Escalate to a person" : st === 1 ? "Specialist: accept" : "";
+    const panel = `<div class="fp"><div class="fp-h"><span class="fin-wm sm">Fin</span><b>Procedure</b><small>Repossessed vehicle inquiry</small></div>
+      ${steps.map(([k, s, done], i) => `<div class="fp-s ${done ? "done" : i === st + 2 ? "cur" : ""}"><i>${done ? SVG.check : i + 1}</i><div><b>${esc(k)}</b><small>${esc(s)}</small></div></div>`).join("")}
+      ${ctx}${action && o.tap ? `<button class="sbtn brand block" data-tap="${o.tap}">${action}</button>` : st >= 2 ? `<div class="fp-done">${SVG.check} Picked up with full context</div>` : ""}</div>`;
+    return `<div class="duo"><div class="duo-col">${ph}</div><div class="duo-col side-lp">${panel}<div class="duo-note">The person doesn\u2019t start from zero</div></div></div>`;
+  }
+
+  /* ------------------------------------------------------------ Customer service: call compliance review (5.3) */
+  function callReview(o = {}) {
+    const st = o.stage || 0;
+    const ok = `<span class="cr-ok">${SVG.check}</span>`;
+    const calls = [
+      ["8:05 AM", "Voice \u00b7 Fin", "Vehicle status + pickup", "Resolved"],
+      ["8:11 AM", "Chat \u00b7 Fin \u2192 person", "Dispute", "Escalated"],
+      ["8:19 AM", "Voice \u00b7 Fin", "Lot hours", "Resolved"],
+      ["8:26 AM", "Voice \u00b7 Fin", "Personal property", "Resolved"],
+    ].map(([t, ch, why, out], i) => ({ cells: [t, esc(ch), esc(why), ok, ok, ok, pill(out, out === "Resolved" ? "ok" : "new")], tap: i === 0 && st === 0 ? o.tap : null, cls: i === 0 && st <= 1 ? "rs-new" : "" }));
+    const detail = st >= 1 ? `<div class="rs-grid2">${card("Call 8:05 AM \u00b7 checks in order", `<div class="cr-tl">
+        ${[["0:12", "Identity verified", "before any vehicle detail"], ["0:48", "get_vehicle_status", "masked response"], ["1:36", "book_property_pickup", "Thu 9\u201311 AM"], ["2:20", "Disclosure read", "illustrative script"], ["2:41", "Call ended", "resolved by Fin"]].map(([t, k, s]) => `<div><span>${t}</span><b>${esc(k)}</b><small>${esc(s)}</small></div>`).join("")}</div>`)}
+      ${card("What the log keeps", `<div class="cr-log"><div><small>Raw request (never stored)</small><code>account=55-0193-882 zip=92501 phone=(951) 555-0141</code></div><div class="arrow">\u2193 Omni Gateway PII masking</div><div><small>Logged</small><code>account=\u2022\u2022\u2022\u2022882 zip=\u2022\u2022\u2022\u202201 phone=(\u2022\u2022\u2022) \u2022\u2022\u2022-\u2022\u202241</code></div></div>`)}</div>
+      ${st === 1 && o.tap ? btn("Export for call monitoring", o.tap, "brand") : ""}` : "";
+    const body = `${pageHead("#0E8A7E", SVG.shield, "Call compliance", "Today \u00b7 every call checked", "", "Fin calls and handoffs \u00b7 sample data")}
+      ${card("Calls", table(["Time", "Channel", "Reason", "ID first", "Disclosure", "PII masked", "Outcome"], calls), { right: "4 of 312 today (illustrative)" })}${detail}`;
+    return frame("cs", lx("Customer Service", ["Calls", "Compliance", "Reports"], "Compliance", body, { kind: "admin", avatar: "RN", toast: st >= 2 ? toast("success", "Exported 1 call for call monitoring", "PII masked \u00b7 checks and timestamps included") : "" }), { device: "laptop" });
+  }
+
+  /* ------------------------------------------------------------ Tableau Pulse: Monday digest on the CTO's phone (7.2) */
+  function pulse(o = {}) {
+    const st = o.stage || 0;
+    const spark = (pts, c) => `<svg class="pu-sp" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="${pts.map((v, i) => `${(i / (pts.length - 1)) * 100},${28 - v}`).join(" ")}" fill="none" stroke="${c}" stroke-width="2.4"/></svg>`;
+    const mets = [
+      { k: "Condition report on time", v: "96%", d: "\u25b2 3 pts", c: "#2E844A", pts: [8, 10, 9, 13, 15, 18, 22], why: "Driven by Southern California (+5 pts) after the hold and report flows went live." },
+      { k: "Acceptance time \u00b7 SoCal", v: "41 min", d: "\u25bc 9 min", c: "#2E844A", pts: [22, 20, 21, 17, 14, 12, 10] },
+      { k: "Holds delivered (median)", v: "4 s", d: "steady", c: "#1f457e", pts: [12, 12, 13, 12, 12, 12, 12] },
+    ];
+    let inner;
+    if (st === 0) {
+      inner = `<div class="pu-lock"><div class="pu-time">7:30</div><div class="pu-date">Monday, November 23</div>
+        <div class="pu-note" ${o.tap ? `data-tap="${o.tap}"` : ""}><div class="pu-nh">${TLOGO}<b>Tableau Pulse</b><span>now</span></div><b>Your Monday digest</b><p>3 metrics moved last week. Condition report on time is up 3 points.</p></div></div>`;
+    } else {
+      const m0 = mets[0];
+      const cards = mets.map((m, i) => `<div class="pu-c ${i === 0 && st === 1 ? "rs-new" : ""} ${i === 0 && st >= 2 ? "sel" : ""}" ${i === 0 && st === 1 && o.tap ? `data-tap="${o.tap}"` : ""}><div><small>${esc(m.k)}</small><b>${m.v}</b><em style="color:${m.c}">${m.d}</em></div>${spark(m.pts, m.c)}</div>`).join("");
+      const why = st >= 2 ? `<div class="pu-why"><div class="pu-wh">Why it moved</div><p>${esc(m0.why)}</p>
+        ${[["Southern California", 5], ["Northern California", 3], ["Texas", 2], ["Gulf Coast", -1]].map(([r, v]) => `<div class="pu-bar"><span>${r}</span><i><span style="width:${Math.abs(v) * 16}%;background:${v < 0 ? "#e15759" : "#59a14f"}"></span></i><b>${v > 0 ? "+" : ""}${v}</b></div>`).join("")}</div>` : "";
+      inner = `<div class="pu"><div class="pu-top">${TLOGO}<b>Pulse</b><span>Monday digest</span></div>
+        <div class="pu-sum">Hi Marcus. Three metrics you follow moved last week.</div>${cards}${why}
+        <div class="pu-foot">Included in your Tableau licensing \u00b7 ready to turn on</div></div>`;
+    }
+    return phone("cto", inner, "7:30");
+  }
+
+  /* ------------------------------------------------------------ Tableau: row-level security, "view as" (8.2) */
+  function tabRls(o = {}) {
+    const st = o.stage || 0, S = D.scorecard;
+    const who = st === 0 ? { n: "Coastal Recovery Co.", id: "AG-0612", v: S.overall, rank: `#${S.rank.pos} of ${S.rank.of}`, board: S.board.map((p) => p.me ? { n: "You", v: p.v, me: true } : p) }
+      : { n: "Mesa Ridge Recovery", id: "AG-0377", v: 93, rank: `#1 of ${S.rank.of}`, board: [{ n: "You", v: 93, me: true }, { n: "Agent B", v: 91 }, { n: "Agent C", v: 90 }, { n: "Agent D", v: 88 }, { n: "Agent E", v: 86 }] };
+    const viewAs = [["Coastal Recovery Co.", st === 0], ["Mesa Ridge Recovery", st === 1], ["Lakeshore Auto Finance (lender)", st >= 2]];
+    const sel = `<div class="rl-va"><small>View as</small>${viewAs.map(([n, on]) => `<span class="${on ? "on" : ""}">${esc(n)}</span>`).join("")}</div>`;
+    const canvas = st >= 2
+      ? `<div class="rl-lock">${SVG.shield}<b>No analytics access</b><p>Lender clients don\u2019t have access to agent scorecards or any analytics content. Status reaches lenders through client-status-eapi, not Tableau.</p></div>`
+      : `<div class="rl-view"><div class="tx-card rl-card"><div class="tx-cr"><b>${who.v}</b><span>SoCal</span></div><div class="tx-cn">${esc(who.n)}</div><div class="tx-ca"><span><small>RANK</small>${who.rank.split(" ")[0]}</span><span><small>ID</small>${who.id.slice(3)}</span></div></div>
+          <div class="rl-board"><small>Ranking \u00b7 peers anonymized</small>${who.board.map((p, i) => `<span class="${p.me ? "me" : ""}"><i>#${i + 1}</i>${esc(p.n)}<b>${p.v}</b></span>`).join("")}</div></div>`;
+    const policy = card("Row-level security \u00b7 agent_scorecard", `<div class="rl-pol"><code>agent_id = USERNAME()</code><span>Each agent sees only its own row.</span><code>peer_label = anonymized</code><span>Other agents appear as Agent A, B, C\u2026</span><code>lender_* \u2192 no grant</code><span>Lenders get no analytics access.</span></div>`);
+    const body = `<div class="rl-top">${sel}${o.tap ? btn(st === 0 ? "View as Mesa Ridge Recovery" : "View as the lender", o.tap, "brand") : ""}</div>
+      <div class="rl-grid"><div class="tx-canvas"><div class="tv-dash"><div class="tv-top"><div class="tv-crumbs"><span>Agent portal</span><i>/</i><span class="on">Scorecard</span></div><small class="tx-tag">Embedded</small></div>${canvas}</div></div>${policy}</div>`;
+    return frame("cto", lx("Tableau", ["Home", "Explore", "Exec", "Pulse"], "Explore", body, { kind: "tableau", avatar: "MC" }), { device: "laptop" });
   }
 
   /* ------------------------------------------------------------ Tableau Cloud: exec scorecard drafted by prompt (Claude + Tableau MCP) */
@@ -423,5 +587,5 @@ window.Screens = (function () {
     return frame(roleKey, lx(o.app || "Resolvion", [], "", body, { kind, avatar: r.label[0] }), { device: "laptop", clock: o.clock });
   }
 
-  return { frame, lx, phone, card, btn, toast, pageHead, table, pill, kv, platform, holdDuo, finCall, fabric, tabExec, agentCard, stub, TLOGO, APLOGO, SVG, esc };
+  return { frame, lx, phone, card, btn, toast, pageHead, table, pill, kv, platform, holdDuo, finCall, fabric, tabExec, agentCard, agentReport, finEscalate, callReview, pulse, tabRls, stub, TLOGO, APLOGO, SVG, esc };
 })();
