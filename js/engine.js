@@ -6,6 +6,14 @@
   const chapterById = Object.fromEntries(A.chapters.map((c) => [c.id, c]));
   const esc = C.esc;
   const NOTES = window.NOTES || null;
+  /* A note is a string, or { say, clicks: [..], care } */
+  const noteHtml = (n) => {
+    if (!n) return `<div class="tk-say"></div>`;
+    if (typeof n === "string") n = { say: n };
+    const clicks = n.clicks ? `<span class="nt-clicks"><b>Clicks</b>${n.clicks.map((c, i) => `<span><i>${i + 1}</i>${esc(c)}</span>`).join("")}</span>` : "";
+    const care = n.care ? `<span class="nt-care"><b>Careful</b>${esc(n.care)}</span>` : "";
+    return `<div class="tk-say"><span class="nt-say">${esc(n.say || "")}</span>${clicks || care ? `<span class="nt-row">${clicks}${care}</span>` : ""}</div>`;
+  };
 
   const state = { path: "short", i: 0, pending: null, done: false };
   /* Per-step short flag: each step declares if it's on the short path. */
@@ -75,7 +83,7 @@
           ${notShort ? '<span class="tk-off">Full run only</span>' : ""}
         </div>
         <div class="tk-title">${/^\d/.test(s.id) ? `<span class="tk-id">${s.id}</span>` : ""}${esc(s.title)}</div>
-        ${NOTES ? `<div class="tk-say">${esc(NOTES[s.id] || "")}</div>` : ""}
+        ${NOTES ? noteHtml(NOTES[s.id]) : ""}
       </div>
       <div class="tk-r">
         <div class="tk-chips">

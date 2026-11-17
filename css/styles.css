@@ -117,6 +117,15 @@ code { font-family: var(--mono); font-size: .92em; }
 .tk-id { font-size: 13px; color: #fff; background: var(--ink2); border-radius: 4px; padding: 0 6px; font-weight: 600; }
 .tk-say { font-size: 15px; color: #444; max-width: 980px; border-left: 3px solid var(--brand); padding-left: 10px; margin-top: 4px; }
 .notes-off .tk-say { display: none; }
+.nt-say { display: block; }
+.nt-row { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; font-size: 12.5px; }
+.nt-row b { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; margin-right: 6px; }
+.nt-clicks { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; color: var(--ink2); }
+.nt-clicks > span { white-space: nowrap; }
+.nt-clicks b { color: var(--brand); }
+.nt-clicks i { font-style: normal; font-size: 10px; font-weight: 700; color: #fff; background: var(--brand); border-radius: 50%; width: 15px; height: 15px; display: inline-grid; place-items: center; margin-right: 4px; }
+.nt-care { color: #8a5a00; }
+.nt-care b { color: #b35f00; }
 .tk-r { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .tk-chips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 560px; }
 .chip { font-size: 12px; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 1px 9px; color: var(--ink2); white-space: nowrap; }
