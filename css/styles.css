@@ -2712,8 +2712,8 @@ h1, h2, h3, .tk-title, .vg-q, .hv2-h1, .today-page h2, .close-cards b { font-fam
 .fc-br.rs-new { background: #fff4e6; box-shadow: 0 0 0 1px #f5c58e; cursor: pointer; }
 .fc-br.sel { background: #fff4e6; }
 .fc-leg { display: flex; gap: 14px; font-size: 10.5px; color: #6b7681; margin-top: 7px; }
-.fc-leg .sw { display: inline-block; width: 10px; height: 4px; margin-right: 4px; vertical-align: 2px; border-radius: 2px; }
-.fc-leg .sw.mk-you { background: var(--brand); }
+.fc-leg .fc-sw { display: inline-block; width: 10px; height: 4px; margin-right: 4px; vertical-align: 2px; border-radius: 2px; }
+.fc-leg .fc-sw.mk-you { background: var(--brand); }
 .fc-board { display: flex; gap: 6px; }
 .fc-board span { flex: 1; text-align: center; border: 1px solid #e3e8ec; border-radius: 7px; padding: 5px 4px; font-size: 11.5px; }
 .fc-board small { display: block; color: #6b7681; font-size: 10px; }
@@ -2738,3 +2738,54 @@ h1, h2, h3, .tk-title, .vg-q, .hv2-h1, .today-page h2, .close-cards b { font-fam
 .tx-thread { overflow: hidden; justify-content: flex-end; min-height: 0; }
 .tx-thread > * { flex: none; }
 .fc-ready .sbtn { background: #fff; color: #112337; border-color: #fff; flex: none; }
+
+/* ------------------------------------------------------------ phones and narrow tablets: stack the split, scale the device screens */
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  body { overflow-x: hidden; overflow-y: auto; }
+  #app { display: block; height: auto; min-height: 100vh; }
+  .top { flex-wrap: wrap; gap: 6px 10px; padding: 8px 12px; }
+  .stepper { order: 3; flex-basis: 100%; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .stepper::-webkit-scrollbar { display: none; }
+  .top-ctl { margin-left: auto; }
+  .talk { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+  .tk-title { font-size: 18px; }
+  .tk-r { align-items: stretch; }
+  .tk-chips { justify-content: flex-start; max-width: none; }
+  .tk-nav { flex-wrap: wrap; gap: 6px; }
+  .stage { display: block; }
+  .left { overflow: visible; padding: 14px 8px 18px; justify-content: flex-start; }
+  .left-desc { position: static; width: 100%; }
+  .device.laptop { width: 720px; max-width: none; zoom: .5; }
+  .device.phone { zoom: .9; }
+  .left-ui .duo, .left-ui [class*="duo"] { flex-wrap: wrap; justify-content: center; }
+  .right { min-height: 640px; border-left: 0; border-top: 3px solid var(--brand); }
+  .cx-pane[data-pane="flow"].on { overflow: auto; }
+  .cx-flow { min-height: 230px; }
+  .lin-flow { flex-wrap: wrap; }
+  .lin-cell { flex-basis: 40%; }
+  .lin-arrow.h { display: none; }
+  .lin-row, .lin.list .lin-row { grid-template-columns: 1fr; gap: 2px; }
+  .lin-s { text-align: left; }
+  .foot { flex-wrap: wrap; gap: 4px 12px; }
+  .page { overflow: visible; }
+  .hv2-band { padding: 14px 16px; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .hv2-brand { flex-wrap: wrap; }
+  .hv2-h1 { white-space: normal; font-size: 20px; }
+  .hv2-btns { flex-wrap: wrap; }
+  .hv2-stats { grid-template-columns: repeat(2, 1fr); padding: 8px 12px; row-gap: 8px; }
+  .hv2-stat { padding: 2px 10px; }
+  .hv2-stat:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .hv2-cast { overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .hv2-cast > * { scroll-snap-align: start; flex: 0 0 78%; }
+  .hv2-journey { padding: 10px 12px 6px; overflow-x: auto; }
+  .jmap-head, .jmap-row, .jmap-bts { grid-template-columns: 110px repeat(8, 118px); }
+  .vg-cols, .today-cols, .close-row { grid-template-columns: 1fr; }
+  .vignette { padding: 12px; }
+  .today-page { padding: 16px 14px 22px; }
+  .today-right { border-left: 0; border-top: 4px solid var(--brand); }
+  .arch-grid { grid-template-columns: 1fr; gap: 6px; }
+  .arch-arrow { transform: rotate(90deg); }
+  .arch-out { grid-template-columns: 1fr 1fr; }
+  .close-cards, .wrap-grid { grid-template-columns: 1fr 1fr; }
+}

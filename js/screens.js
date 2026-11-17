@@ -399,7 +399,7 @@ window.Screens = (function () {
     const M = S.move;
     const tip = st >= 2 ? card("How to move up", `<div class="fc-tip"><div><small>Do this</small><b>${esc(M.ask)}</b><span>Top 5 in your region post ${esc(M.peerTop)}. You post ${esc(S.attrs.find((a) => a.k === M.attr).raw)}.</span></div><div class="fc-proj"><small>Projected</small><b>${M.projected}</b><span>rank #${M.rank} of ${S.rank.of}</span></div></div><p class="rs-muted">Projection is illustrative.</p>`, { cls: "fc-tipc" }) : "";
     const body = `<div class="fc-wrap">${fifa}<div class="fc-side">
-        ${card(`You vs anonymized peers \u00b7 ${esc(S.rank.region)}`, `<div class="fc-bars">${bars}</div><div class="fc-leg"><span><span class="sw mk-you"></span>You</span><span><span class="sw mk-med"></span>Peer median</span><span><span class="sw mk-top"></span>Top 5 average</span></div>`)}
+        ${card(`You vs anonymized peers \u00b7 ${esc(S.rank.region)}`, `<div class="fc-bars">${bars}</div><div class="fc-leg"><span><span class="fc-sw mk-you"></span>You</span><span><span class="fc-sw mk-med"></span>Peer median</span><span><span class="fc-sw mk-top"></span>Top 5 average</span></div>`)}
         ${tip || card("Ranking \u00b7 peers anonymized", `<div class="fc-board">${board}</div>`)}
       </div></div>
       <div class="fc-emb">${TLOGO}<span>Embedded Tableau view \u00b7 you see only your own data and anonymized peers</span></div>`;
