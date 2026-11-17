@@ -521,10 +521,41 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "21:00:00",
-          left: (tap, i = 0) => S.stub("data", { app: "Tableau Cloud", title: "Exec scorecard \u00b7 agent network", lines: ["Acceptance inside 2 hrs: 94%", "Condition report inside 4 hrs: 96%", "Recoveries this month: 10,400+ (illustrative)"], tap, step: i }),
+          left: (tap, i = 0) => S.tabExec({ stage: i, tap }),
+          ambient: [["azure", "s-azure", "p-sync", "tab"], ["rdn", "s-rdn", "p-events", "p-sync", "tab"]],
+          setup: async () => C.extra(listCard("How exec views get built today", [
+            ["Who builds", "One or two people on Tableau Desktop", "everyone else waits"],
+            ["What execs get", "A grid of red and green dots", "accurate, hard to read", "warn"],
+          ])),
           beats: [
-            { tap: "next", cap: "Click to build the view by prompt.", path: ["p-sync", "tab"], tag: ["tab", "governed \u00b7 RLS"], eng: "tableau-mcp \u00b7 prompt \u2192 published data source agent_sla (certified) \u00b7 player-card layout", exec: "An exec scorecard drafted on governed data" },
+            {
+              tap: "next", cap: "Devon types the ask into Claude, connected to the free Tableau MCP. Click Send.", path: ["p-sync", "tab"], tag: ["tab", "certified \u00b7 agent_sla"],
+              eng: "tableau-mcp \u00b7 list-datasources \u2192 agent_sla (certified) \u00b7 query-datasource \u00d7 2 \u00b7 runs as Devon \u00b7 RLS enforced", exec: "Claude drafts the view from governed data",
+              after: async (x) => {
+                C.payload({
+                  left: { title: "Tableau MCP \u00b7 query-datasource", obj: { datasource: "agent_sla (certified)", fields: ["region", "accept_lt_2h_pct", "report_lt_4h_pct", "hold_to_truck_median_s"], filters: { period: "last 30 days" }, run_as: "Devon (Tableau permissions)" }, hl: ["datasource"] },
+                  right: { title: "Result \u00b7 illustrative", obj: { rows: [{ region: "Southern California", accept_lt_2h_pct: 95, report_lt_4h_pct: 97 }, { region: "Gulf Coast", accept_lt_2h_pct: 89, report_lt_4h_pct: 91 }], row_count: 9 }, hl: ["rows"] },
+                  mapTitle: "Why the numbers can be trusted",
+                  map: [["agent_sla", "certified data source", "fed by the MuleSoft flows"], ["SLA + fee events", "land as they happen", "same numbers billing uses"], ["Devon\u2019s permissions", "applied to every MCP call", "no extra access"]],
+                });
+                await C.log([
+                  { lvl: "info", raw: "tableau-mcp list-datasources \u2192 agent_sla (certified, owner Reporting + Analytics)", exec: "Claude finds the certified source" },
+                  { lvl: "info", raw: "tableau-mcp query-datasource agent_sla \u00b7 9 rows \u00b7 212 ms", exec: "Queries it with Devon\u2019s permissions" },
+                ], x.t);
+              },
+            },
+            {
+              tap: "next", cap: "The draft is concise and easy to see. Click Send to publish it for the exec team.", path: ["p-sync", "tab"], tag: ["tab", "published \u00b7 Exec"],
+              eng: "tableau-cloud \u00b7 publish workbook Exec/Agent network \u00b7 source agent_sla (certified) \u00b7 RLS inherited", exec: "Published for execs on the same governed numbers",
+              after: async () => C.extra(listCard("Ways to build exec views by prompt", [
+                ["Claude + Tableau MCP", "Free, available now, with the Claude you already use", "what you just saw", "ok"],
+                ["Tableau Studio + Tableau Agent", "Build by prompt inside Tableau", "requires Tableau+"],
+                ["Tableau Pulse", "A Monday digest for leaders who only view", "already licensed \u00b7 ready to turn on"],
+              ])),
+            },
           ],
+          done: "Concise, easy to see, and built on the same governed numbers billing uses.",
+          clockStrip: [{ l: "Drafted in", v: "minutes", s: "illustrative" }, { l: "Source", v: "certified", state: "ok" }, { l: "Same numbers as", v: "billing" }, { l: "Extra licenses", v: "none", s: "Tableau MCP is free" }],
         });
       },
     },
@@ -553,10 +584,35 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "17:00:00",
-          left: (tap, i = 0) => S.stub("agentDesk", { app: "Agent portal", title: "Coastal Recovery Co. \u00b7 88", lines: ["ACC 91 \u00b7 UPD 84 \u00b7 RPT 95 \u00b7 REC 82 \u00b7 COV 90", "Rank 4 of 37 in Southern California", "Weakest: update cadence. Improve it to move up"], tap, step: i }),
+          left: (tap, i = 0) => S.agentCard({ stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click the scorecard.", path: ["p-events", "e-agent", "agentapp"], tag: ["agentapp", "rating 88 \u00b7 #4"], eng: "agent-portal-eapi \u00b7 GET /agents/AG-0612/scorecard \u00b7 Tableau Embedded view", exec: "The agent sees how they rank" },
+            {
+              tap: "next", cap: "Coastal Recovery signs in to the agent portal. Click View scorecard.", path: ["agentapp", "e-agent", "p-events", "p-sync", "tab"], tag: ["tab", "embedded \u00b7 RLS"],
+              eng: "agent-portal-eapi \u00b7 GET /agents/AG-0612/scorecard \u00b7 Tableau Embedded \u00b7 RLS agent_id = AG-0612", exec: "The agent sees their own player card",
+              after: async (x) => {
+                await C.packet(["tab", "p-sync", "p-events", "e-agent", "agentapp"], x.t, { dur: 380 });
+                C.tag("agentapp", "rating 88 \u00b7 #4 of 37", "ok");
+                const SC = D.scorecard;
+                C.payload({
+                  left: { title: "agent-portal-eapi \u00b7 request", obj: { method: "GET", path: "/agents/AG-0612/scorecard", auth: "agent login (OAuth 2.0)", region: SC.rank.region }, hl: ["path"] },
+                  right: { title: "Response \u00b7 illustrative", obj: { agent_id: "AG-0612", overall: SC.overall, attrs: Object.fromEntries(SC.attrs.map((a) => [a.k, a.v])), rank: `${SC.rank.pos} of ${SC.rank.of}`, peers: "anonymized" }, hl: ["overall", "rank", "peers"] },
+                  mapTitle: "Where each rating comes from",
+                  map: SC.attrs.map((a) => [a.l, a.k + " " + a.v, a.raw]),
+                });
+              },
+            },
+            {
+              tap: "next", cap: "Update cadence is the weakest attribute. Click it to see how to move up.", path: ["agentapp", "e-agent", "p-events"], tag: ["e-agent", "drill \u00b7 update cadence"],
+              eng: "agent-portal-eapi \u00b7 GET /agents/AG-0612/scorecard/UPD \u00b7 peer top-5 4.1 / week \u00b7 projection 90", exec: "The agent sees exactly what to improve",
+              after: async () => C.extra(listCard("Row-level security \u00b7 one dashboard, every agent", [
+                ["Coastal Recovery sees", "Its own numbers and anonymized peers", "agent_id = USERNAME()", "ok"],
+                ["Other agents", "Never named", "peers anonymized"],
+                ["Lender clients", "No analytics access", "by design"],
+              ])),
+            },
           ],
+          done: "Whoever does the best work gets forwarded the work: better results, lower risk.",
+          clockStrip: [{ l: "Overall rating", v: "88" }, { l: "Rank", v: "4 of 37", s: "Southern California" }, { l: "Peers named", v: "0", state: "ok" }, { l: "Exports needed", v: "0", s: "one embedded view" }],
         });
       },
     },

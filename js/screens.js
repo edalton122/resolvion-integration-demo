@@ -329,6 +329,83 @@ window.Screens = (function () {
     return af("Routing", body);
   }
 
+  /* ------------------------------------------------------------ Tableau Cloud: exec scorecard drafted by prompt (Claude + Tableau MCP) */
+  const TRUCK = '<svg viewBox="0 0 80 40" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M6 28V19h28v9M34 28V12h12l9 9v7"/><path d="M38 15h7l5 6H38z"/><path d="M11 19L23 6l5 2M28 8v6"/><path d="M3 28h56"/><circle cx="15" cy="30" r="4.2" fill="currentColor"/><circle cx="47" cy="30" r="4.2" fill="currentColor"/></svg>';
+
+  function tabExec(o = {}) {
+    const st = o.stage || 0, E = D.execView;
+    const ask = "Build an exec view of agent SLAs and recovery performance from the certified agent_sla source. Player-card style: concise and easy to see, not a spreadsheet.";
+    const calls = [["list-datasources", "agent_sla \u00b7 certified"], ["get-datasource-metadata", "14 fields"], ["query-datasource", "SLA by region \u00b7 30 days"], ["query-datasource", "top agent per region"]];
+    const input = (txt) => (o.tap ? `<div class="tx-input"><span>${esc(txt)}</span><button class="sbtn brand" data-tap="${o.tap}">Send</button></div>` : "");
+    const chat = `<div class="tx-chat">
+      <div class="tx-ch"><b>Claude</b><span><i></i>Tableau MCP connected</span></div>
+      <div class="tx-thread">
+        ${st >= 1 ? `<div class="tx-msg me">${esc(ask)}</div>
+          <div class="tx-calls">${calls.map(([n, r], i) => `<div style="animation-delay:${i * 140}ms"><code>${n}</code><span>${r}</span></div>`).join("")}</div>
+          <div class="tx-msg ai">Drafted <b>Exec \u00b7 Agent network</b>: four headline numbers and a player card for the top agent in each region. Publish it?</div>` : `<div class="tx-empty">Ask about your Tableau data. Claude only sees what your Tableau permissions allow.</div>`}
+        ${st >= 2 ? `<div class="tx-msg me">Yes, publish it to the Exec project.</div><div class="tx-msg ai ok">${SVG.check} Published to Tableau Cloud \u00b7 Exec / Agent network</div>` : ""}
+      </div>
+      ${st === 0 ? input(ask) : st === 1 ? input("Yes, publish it to the Exec project.") : ""}
+    </div>`;
+    let canvas;
+    if (st === 0) {
+      const dots = Array.from({ length: 9 }, (_, r) => `<div class="tx-dr"><span>Region ${r + 1}</span>${Array.from({ length: 12 }, (_, c) => `<i class="${(r * 7 + c * 3) % 5 === 0 ? "r" : (r + c) % 4 === 0 ? "a" : "g"}"></i>`).join("")}</div>`).join("");
+      canvas = `<div class="tv-dash tx-old"><div class="tv-top"><div class="tv-crumbs"><span>Ops</span><i>/</i><span class="on">Agent SLA grid</span></div><small class="tx-tag">Today</small></div>
+        <div class="tx-dots">${dots}</div><div class="tx-cap">9 regions \u00d7 12 measures of red and green dots. Accurate, but hard to read at a glance.</div></div>`;
+    } else {
+      const bans = E.bans.map((b) => `<div class="tv-ban ${b.c === "bad" ? "amber" : "ok"}"><div class="tv-bk">${esc(b.k)}</div><div class="tv-bv">${esc(b.v)}</div><div class="tv-bd ${b.c}">${esc(b.d)}</div></div>`).join("");
+      const tops = E.tops.map((t, i) => `<div class="tx-card" style="animation-delay:${i * 90}ms"><div class="tx-cr"><b>${t.v}</b><span>${esc(t.region)}</span></div><div class="tx-cn">${esc(t.name)}</div><div class="tx-ca">${t.a.map(([k, v]) => `<span><small>${k}</small>${v}</span>`).join("")}</div></div>`).join("");
+      canvas = `<div class="tv-dash"><div class="tv-top"><div class="tv-crumbs"><span>Exec</span><i>/</i><span class="on">Agent network</span></div><small class="tx-tag ${st >= 2 ? "pub" : "draft"}">${st >= 2 ? "Published" : "Draft"}</small></div>
+        <div class="tv-bans n4">${bans}</div>
+        <div class="tx-sub">Top agent by region \u00b7 overall rating</div>
+        <div class="tx-cards">${tops}</div>
+        <div class="tx-cap">Source: agent_sla (certified) \u00b7 fed by MuleSoft flows \u00b7 illustrative figures, fictional agent names</div></div>`;
+    }
+    const body = `<div class="tx-wrap">${chat}<div class="tx-canvas">${canvas}</div></div>`;
+    return frame("data", lx("Tableau", ["Home", "Explore", "Exec", "Pulse"], st === 0 ? "Explore" : "Exec", body, { kind: "tableau", avatar: "DV", toast: st >= 2 ? toast("success", "Published to Exec / Agent network", "Certified source \u00b7 row-level security applied") : "" }), { device: "laptop" });
+  }
+
+  /* ------------------------------------------------------------ Agent portal: FIFA-style player card (Tableau Embedded) */
+  function agentCard(o = {}) {
+    const st = o.stage || 0, S = D.scorecard, me = D.agent;
+    const portal = (active, body, t) => frame("agentDesk", lx("Agent Portal", ["Assignments", "Scorecard", "Invoices", "Profile"], active, body, { kind: "admin", tag: me.name, avatar: "CR", toast: t }), { device: "laptop" });
+    if (st === 0) {
+      const rows = [["RSV-26-0481723", "2022 Honda Accord EX", "Recovered", "ok"], ["RSV-26-0480955", "2021 Toyota Camry SE", "Located", "new"], ["RSV-26-0479102", "2020 Ford F-150 XLT", "Assigned", ""]]
+        .map(([id, v, s, k]) => ({ cells: [`<b>${id}</b>`, esc(v), pill(s, k)] }));
+      const body = `${pageHead("#D9741C", TRUCK, "Coastal Recovery Co. \u00b7 Oceanside, CA", "Good afternoon")}
+        <div class="fc-ready"><div><b>Your November scorecard is ready</b><span>See your rating, your rank in ${esc(S.rank.region)}, and where to improve.</span></div>${o.tap ? btn("View scorecard", o.tap, "brand") : ""}</div>
+        ${card("Open assignments", table(["Assignment", "Vehicle", "Status"], rows))}`;
+      return portal("Assignments", body);
+    }
+    const attrs = S.attrs.map((a) => `<div class="fc-at"><b>${a.v}</b><span>${a.k}</span></div>`).join("");
+    const fifa = `<div class="fc"><div class="fc-in">
+      <div class="fc-top"><div class="fc-ovr">${S.overall}<small>OVR</small></div><div class="fc-pos">SoCal<small>#${S.rank.pos} of ${S.rank.of}</small></div></div>
+      <div class="fc-art">${TRUCK}</div>
+      <div class="fc-name">COASTAL RECOVERY</div>
+      <div class="fc-ats">${attrs}</div>
+      <div class="fc-foot"><img src="${B.mark}" alt=""/></div>
+    </div></div>`;
+    const bars = S.attrs.map((a) => {
+      const [med, top] = S.peers[a.k];
+      const weak = a.k === S.move.attr, strong = a.v - med >= 6;
+      const tapMe = weak && st === 1 && o.tap;
+      return `<div class="fc-br ${weak ? "weak" : strong ? "strong" : ""} ${tapMe ? "rs-new" : ""} ${weak && st >= 2 ? "sel" : ""}" ${tapMe ? `data-tap="${o.tap}"` : ""}>
+        <span class="fc-bk">${esc(a.l)}<small>${esc(a.raw)}</small></span>
+        <span class="fc-bt"><span class="mk-you" style="width:${a.v}%"></span><span class="mk mk-med" style="left:${med}%"></span><span class="mk mk-top" style="left:${top}%"></span></span>
+        <b>${a.v}</b>${weak ? `<em>${tapMe ? "Tap to improve \u203a" : "Weakest"}</em>` : strong ? `<em class="s">Strength</em>` : "<em></em>"}
+      </div>`;
+    }).join("");
+    const board = S.board.map((p, i) => `<span class="${p.me ? "me" : ""}"><small>#${i + 1}</small>${esc(p.n)}<b>${p.v}</b></span>`).join("");
+    const M = S.move;
+    const tip = st >= 2 ? card("How to move up", `<div class="fc-tip"><div><small>Do this</small><b>${esc(M.ask)}</b><span>Top 5 in your region post ${esc(M.peerTop)}. You post ${esc(S.attrs.find((a) => a.k === M.attr).raw)}.</span></div><div class="fc-proj"><small>Projected</small><b>${M.projected}</b><span>rank #${M.rank} of ${S.rank.of}</span></div></div><p class="rs-muted">Projection is illustrative.</p>`, { cls: "fc-tipc" }) : "";
+    const body = `<div class="fc-wrap">${fifa}<div class="fc-side">
+        ${card(`You vs anonymized peers \u00b7 ${esc(S.rank.region)}`, `<div class="fc-bars">${bars}</div><div class="fc-leg"><span><span class="sw mk-you"></span>You</span><span><span class="sw mk-med"></span>Peer median</span><span><span class="sw mk-top"></span>Top 5 average</span></div>`)}
+        ${tip || card("Ranking \u00b7 peers anonymized", `<div class="fc-board">${board}</div>`)}
+      </div></div>
+      <div class="fc-emb">${TLOGO}<span>Embedded Tableau view \u00b7 you see only your own data and anonymized peers</span></div>`;
+    return portal("Scorecard", body);
+  }
+
   /* ------------------------------------------------------------ interim screen for chapters still being skinned */
   const TAP_LABEL = { next: "Continue", hold: "Send HOLD", ack: "Acknowledge", open: "Open", post: "Post", retry: "Retry" };
   function stub(roleKey, o = {}) {
@@ -346,5 +423,5 @@ window.Screens = (function () {
     return frame(roleKey, lx(o.app || "Resolvion", [], "", body, { kind, avatar: r.label[0] }), { device: "laptop", clock: o.clock });
   }
 
-  return { frame, lx, phone, card, btn, toast, pageHead, table, pill, kv, platform, holdDuo, finCall, fabric, stub, TLOGO, APLOGO, SVG, esc };
+  return { frame, lx, phone, card, btn, toast, pageHead, table, pill, kv, platform, holdDuo, finCall, fabric, tabExec, agentCard, stub, TLOGO, APLOGO, SVG, esc };
 })();

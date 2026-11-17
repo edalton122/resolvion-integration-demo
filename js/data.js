@@ -290,6 +290,26 @@ window.PC = (function () {
       { k: "COV", l: "Coverage + distance", v: 90, raw: "11.4 mi to target" },
     ],
     rank: { pos: 4, of: 37, region: "Southern California" },
+    /* Anonymized peers in the same region: median and top-5 average per attribute. */
+    peers: { ACC: [84, 95], UPD: [88, 94], RPT: [89, 96], REC: [77, 86], COV: [85, 93] },
+    board: [{ n: "Agent A", v: 93 }, { n: "Agent B", v: 91 }, { n: "Agent C", v: 90 }, { n: "You", v: 88, me: true }, { n: "Agent E", v: 86 }],
+    move: { attr: "UPD", peerTop: "4.1 / week", ask: "One status update per open assignment every two days", projected: 90, rank: 2 },
+  };
+
+  /* Exec scorecard (Tableau): headline numbers and the top agent per region. Agent names are fictional. */
+  const execView = {
+    bans: [
+      { k: "Accepted inside 2 hrs", v: "94%", d: "\u25b2 2 pts vs last month", c: "good" },
+      { k: "Condition report inside 4 hrs", v: "96%", d: "\u25b2 1 pt", c: "good" },
+      { k: "Hold to truck (median)", v: "4 s", d: "every hold delivered", c: "good" },
+      { k: "Regions below report SLA", v: "2", d: "Gulf Coast \u00b7 Mountain", c: "bad" },
+    ],
+    tops: [
+      { region: "SoCal", name: "Mesa Ridge Recovery", v: 93, a: [["ACC", 95], ["RPT", 97], ["UPD", 92]] },
+      { region: "NorCal", name: "Bayline Recovery", v: 90, a: [["ACC", 90], ["RPT", 95], ["UPD", 89]] },
+      { region: "Texas", name: "Pecos Trail Recovery", v: 91, a: [["ACC", 93], ["RPT", 94], ["UPD", 90]] },
+      { region: "Florida", name: "Sawgrass Recovery", v: 89, a: [["ACC", 88], ["RPT", 93], ["UPD", 91]] },
+    ],
   };
 
   /* Scale: assignments a month (illustrative growth on Resolvion's public 50,000+ figure). */
@@ -321,6 +341,6 @@ window.PC = (function () {
 
   return {
     meta, roles, personas, vignettes, lender, vehicle, borrower, agent, assignment, milestones, statusMap, canonical,
-    holdEvent, personalProperty, pickup, invoice, feeLines, fabric, scorecard, scale, outage, security, scope,
+    holdEvent, personalProperty, pickup, invoice, feeLines, fabric, scorecard, execView, scale, outage, security, scope,
   };
 })();
