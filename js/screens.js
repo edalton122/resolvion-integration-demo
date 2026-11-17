@@ -153,7 +153,7 @@ window.Screens = (function () {
 
     billing(st, tap) {
       const lines = D.feeLines.map((f, i) => ({
-        cells: [`<code>${f.code}</code>`, esc(f.label), esc(f.amt), i === 0 ? (st >= 2 ? pill("Synced", "ok") : st >= 1 ? pill("Posted", "new") : pill("Draft")) : pill(st >= 3 ? "Synced" : "Draft", st >= 3 ? "ok" : "")],
+        cells: [`<code>${f.code}</code>`, esc(f.label), "\u2022\u2022\u2022.\u2022\u2022", i === 0 ? (st >= 2 ? pill("Synced", "ok") : st >= 1 ? pill("Posted", "new") : pill("Draft")) : pill(st >= 3 ? "Synced" : "Draft", st >= 3 ? "ok" : "")],
         cls: i === 0 && st <= 1 ? "rs-new" : "",
       }));
       const I = D.invoice;
@@ -164,7 +164,7 @@ window.Screens = (function () {
         { right: `${I.lender} \u00b7 SQL Server` }
       );
       const action = st === 0 ? btn("Post fee line", tap, "brand") : st === 1 ? btn("Sync to legacy ERP", tap, "brand") : tap ? btn("Continue", tap, "brand") : "";
-      return plat("Billing", `${pageHead("var(--brand)", SVG.ledger, "Fee lines \u00b7 RSV-26-0479915", "Recovered overnight", action, "One way: new platform \u2192 legacy ERP \u00b7 amounts are sample values")}<div class="rs-grid2">${card("New platform \u00b7 fee lines", table(["Code", "Line", "Amount", "Status"], lines))}${erp}</div>`, {
+      return plat("Billing", `${pageHead("var(--brand)", SVG.ledger, "Fee lines \u00b7 RSV-26-0479915", "Recovered overnight", action, "One way: new platform \u2192 legacy ERP \u00b7 amounts masked")}${card("New platform \u00b7 fee lines", table(["Code", "Line", "Amount", "Status"], lines), { right: "Azure SQL" })}<div class="rs-flow">\u2193 assignment-sync-papi</div>${erp}`, {
         toast: st >= 2 ? toast("success", "Fee line added to the client invoice in the legacy ERP", `Azure \u2192 assignment-sync-papi \u2192 ${I.id} \u00b7 2.3 s`) : "",
       });
     },
@@ -217,6 +217,118 @@ window.Screens = (function () {
     },
   };
 
+  /* ------------------------------------------------------------ agent phone + lender portal (holds) */
+  const rsMark = `<img class="rs-mark" src="${B.mark}" alt=""/>`;
+  /* o = { stage: 0 located | 1 hold pushed | 2 acknowledged, tap } */
+  function holdDuo(o = {}) {
+    const st = o.stage || 0, H = D.holdEvent, V = D.vehicle;
+    const lender = `<div class="lp">
+      <div class="lp-h"><span class="lp-logo">L</span><b>${esc(D.lender.name)}</b><small>Collections \u00b7 lender system (fictional)</small></div>
+      <div class="lp-b">
+        <div class="lp-row"><span>Account</span><b>\u2022\u2022\u2022\u2022882</b></div>
+        <div class="lp-row"><span>Payment</span><b class="ok">Posted 10:41 AM</b></div>
+        <div class="lp-row"><span>Placement</span><b>${esc(A.id)}</b></div>
+        ${st === 0 ? `<button class="sbtn brand block" data-tap="${o.tap || ""}">Issue HOLD to Resolvion</button>` : `<div class="lp-sent">HOLD sent ${H.received} \u00b7 ${st >= 2 ? `acknowledged ${H.ack}` : "awaiting acknowledgement"}</div>`}
+      </div>
+    </div>`;
+    const caseCard = `<div class="ra-card">
+        <div class="ra-k">Case ${esc(A.id)}</div>
+        <b>${V.year} ${esc(V.make)} ${esc(V.model)} \u00b7 ${esc(V.color)}</b>
+        <div class="ra-map"><svg viewBox="0 0 240 90"><path d="M0 60 Q60 40 120 55 T240 40" stroke="#c9d6e2" stroke-width="10" fill="none"/><path d="M40 0 L70 90 M170 0 L150 90" stroke="#dde6ee" stroke-width="7"/><circle cx="128" cy="52" r="7" fill="${st >= 1 ? "var(--alert)" : "var(--brand)"}"/><circle cx="128" cy="52" r="15" fill="none" stroke="${st >= 1 ? "var(--alert)" : "var(--brand)"}" opacity=".35"/></svg><span>Last LPR hit \u00b7 Riverside \u00b7 Wed 6:02 AM</span></div>
+        <div class="ra-chips"><span class="rs-pill err">Do not contact at work</span><span class="rs-pill">Child seat in vehicle</span></div>
+        <div class="ra-status ${st >= 1 ? "hold" : ""}">${st >= 2 ? "ON HOLD \u00b7 do not recover" : st >= 1 ? "HOLD received" : "Active \u00b7 en route"}</div>
+      </div>`;
+    const alert = st === 1 ? `<div class="ra-alert"><div class="ra-alert-in">
+        <div class="ra-alert-k">\u26a0 Lender HOLD</div>
+        <b>Do not recover</b>
+        <p>${esc(V.year + " " + V.make + " " + V.model)} \u00b7 ${esc(A.id)}</p>
+        <p class="ra-alert-r">${esc(H.reason)}</p>
+        <p class="ra-alert-t">Sent ${H.received} \u00b7 delivered ${H.delivered}</p>
+        <button class="ra-ack" data-tap="${o.tap || ""}">Acknowledge</button>
+      </div></div>` : "";
+    const ack = st >= 2 ? `<div class="ra-ok">${SVG.check} Acknowledged ${H.ack} \u00b7 on the audit trail</div>` : "";
+    const ph = phone("agent", `<div class="ra">
+        <div class="ra-top">${rsMark}<b>Agent app</b><span>Coastal Recovery Co.</span></div>
+        <div class="ra-body">${ack}${caseCard}</div>${alert}
+      </div>`, st >= 1 ? "10:42" : "10:40");
+    return `<div class="duo"><div class="duo-col">${ph}</div><div class="duo-col side-lp">${lender}<div class="duo-note">Lender side \u00b7 illustrative</div></div></div>`;
+  }
+
+  /* ------------------------------------------------------------ Fin borrower call */
+  /* o = { stage: 0 verified | 1 vehicle found | 2 pickup booked, tap } */
+  function finCall(o = {}) {
+    const st = o.stage || 0, P = D.pickup;
+    const turns = [
+      ["b", "My car was repossessed yesterday. Where is it?"],
+      ["f", "I can help with that. To verify your identity, what are the last four digits of your account and your ZIP code?"],
+      ["b", "Eight eight two, and nine two five oh one."],
+      ["f", "Thanks, you\u2019re verified. One moment while I look up your vehicle."],
+    ];
+    if (st >= 1) turns.push(["f", `Your 2022 Honda Accord is at our ${P.lot.replace(" (fictional)", "")}, open ${P.hours} weekdays. The lender noted a child seat in the vehicle. Would you like to schedule a time to collect your belongings?`], ["b", "Yes. Thursday morning works."]);
+    if (st >= 2) turns.push(["f", `You\u2019re booked for ${P.window}. Please bring a photo ID.`], ["f", "<i>Required disclosure read (illustrative script).</i> Is there anything else I can help with?"], ["b", "No, that\u2019s it. Thanks."]);
+    const ph = phone("borrower", `<div class="fin">
+        <div class="fin-top"><span class="fin-wm">Fin</span><div><b>Resolvion recovery line</b><small>Voice \u00b7 \u201cIf your car was repossessed\u201d</small></div><span class="fin-live">\u25cf ${st >= 2 ? "2:41" : st >= 1 ? "1:36" : "0:48"}</span></div>
+        <div class="fin-tx">${turns.map(([w, t], i) => `<div class="fin-b ${w} ${i >= turns.length - (st ? 2 : 4) ? "new" : ""}">${w === "f" ? t : esc(t)}</div>`).join("")}</div>
+      </div>`, "8:05");
+    const steps = [
+      ["Verify identity", "last 4 of account + ZIP", true],
+      ["get_vehicle_status", "data connector \u2192 borrower-service-eapi", st >= 1],
+      ["book_property_pickup", "data connector \u2192 borrower-service-eapi", st >= 2],
+      ["Read disclosure", "illustrative script", st >= 2],
+      ["Escalate if dispute", "branch \u2192 person, with context", false],
+    ];
+    const next = st === 0 ? ["Run get_vehicle_status", 1] : st === 1 ? ["Run book_property_pickup", 2] : null;
+    const panel = `<div class="fp">
+      <div class="fp-h"><span class="fin-wm sm">Fin</span><b>Procedure</b><small>Repossessed vehicle inquiry</small></div>
+      ${steps.map(([k, s, done], i) => `<div class="fp-s ${done ? "done" : i === st + 1 && next ? "cur" : ""}"><i>${done ? SVG.check : i + 1}</i><div><b>${esc(k)}</b><small>${esc(s)}</small></div></div>`).join("")}
+      ${next && o.tap ? `<button class="sbtn brand block" data-tap="${o.tap}">${next[0]}</button>` : st >= 2 ? `<div class="fp-done">${SVG.check} Resolved by Fin \u00b7 no handoff</div>` : ""}
+    </div>`;
+    return `<div class="duo"><div class="duo-col">${ph}</div><div class="duo-col side-lp">${panel}<div class="duo-note">Alongside Agent Fabric, calling MuleSoft APIs</div></div></div>`;
+  }
+
+  /* ------------------------------------------------------------ Agent Fabric console (Anypoint) */
+  const AF_TABS = ["Registry", "Routing", "FinOps", "Policies"];
+  const af = (active, body, opt = {}) =>
+    frame("cto", lx("Agent Fabric", AF_TABS, active, body, { kind: "anypoint", env: "Production", toast: opt.toast }), { device: "laptop", clock: opt.clock });
+
+  /* view: "routing" | "finops"; stage + tap as elsewhere */
+  function fabric(o = {}) {
+    const st = o.stage || 0, F = D.fabric;
+    if (o.view === "finops") {
+      const W = F.wallet;
+      const wallets = [
+        ["Case Evaluation Agent", 52], ["Order Evaluation Agent", W.used], ["Notes Normalizer (on-site)", 0], ["Coding agents (Claude)", 61],
+      ];
+      const bars = F.spend.map((s) => `<div class="af-bar"><span class="af-bk">${esc(s.model)}</span><span class="af-bt"><span style="width:${s.share}%"></span></span><b>${s.tokens}</b></div>`).join("");
+      const rows = wallets.map(([n, v]) => {
+        const hot = n === W.agent;
+        return `<div class="af-w ${hot && st >= 1 ? "hot" : ""} ${hot && st === 1 ? "rs-new" : ""}" ${hot && st === 1 && o.tap ? `data-tap="${o.tap}"` : ""}>
+          <span class="af-wk">${esc(n)}</span><span class="af-wt"><span style="width:${v}%" class="${v >= 80 ? "warn" : ""}"></span><i style="left:100%"></i></span><b>${n.includes("on-site") ? "no marginal cost" : v + "%"}</b>
+        </div>`;
+      }).join("");
+      const capCard = st >= 2 ? card("Model Wallet \u00b7 Order Evaluation Agent", `<div class="af-cap"><div><small>Today</small><b>${W.used}%</b></div><div><small>Cap</small><b>100% \u00b7 hard</b></div><div><small>At cap</small><b>Requests held</b></div><div><small>Owner</small><b>Technology</b></div></div><p class="rs-muted">The budget is enforced by Model Proxy, not reviewed after the fact. The owner can raise it from here.</p>`, { cls: "rs-alert-warn" }) : "";
+      const body = `${pageHead("#00A1E0", SVG.ledger, "FinOps Dashboard", "Token spend \u00b7 today", st === 0 && o.tap ? btn("Open today\u2019s spend", o.tap, "brand") : "", "All agents and models \u00b7 illustrative figures")}
+        <div class="rs-grid2">${card("Tokens by model", `<div class="af-bars">${bars}</div><div class="af-tot">70.6M tokens \u00b7 58% on-site</div>`)}${card("Model Wallet budgets", `<div class="af-ws">${rows}</div>`, { right: "per agent \u00b7 daily" })}</div>${capCard}`;
+      return af("FinOps", body);
+    }
+    const reqs = [
+      { who: "Case Evaluation Agent", what: "Evaluate case \u00b7 lender notes", pii: true, to: "On-site model", rule: "Contains borrower PII" },
+      { who: "Order Evaluation Agent", what: "Summarize order history", pii: false, to: "OpenAI (enterprise) \u00b7 lowest-cost capable", rule: "No PII \u00b7 general" },
+      { who: "Coding agent", what: "Refactor ERP module", pii: false, to: "Claude", rule: "Code task" },
+    ];
+    const rows = reqs.map((r, i) => ({
+      cells: [`<b>${esc(r.who)}</b><small class="af-sub">${esc(r.what)}</small>`, r.pii ? pill("PII", "err") : pill("No PII"), i < st || (i === 2 && st >= 2) ? `${pill("\u2192 " + r.to, i === 0 ? "ok" : "new")}` : i === st && o.tap ? `<span class="af-route">Route \u203a</span>` : "\u2014"],
+      tap: i === st && o.tap ? o.tap : null,
+      cls: i === st && o.tap ? "rs-new" : "",
+    }));
+    const rules = F.models.map((m) => `<div class="af-rule"><b>${esc(m.name)}</b><span>${esc(m.rule)}</span><em>${esc(m.cost)}</em></div>`).join("");
+    const reg = F.agents.map((a) => `<span class="af-agent">${esc(a.name)}<small>${esc(a.where)}</small></span>`).join("");
+    const body = `${pageHead("#00A1E0", SVG.shield, "Model Proxy", "Live requests \u00b7 routed by policy", "", "Sits across your orchestrator and agents \u00b7 nothing replaced")}
+      ${card("Registered \u00b7 discovered by AI Platform Scanners", `<div class="af-agents">${reg}</div>`)}
+      ${card("Requests", table(["Caller", "Data", "Routed to"], rows))}${card("Routing rules \u00b7 Policy Catalog", `<div class="af-rules">${rules}</div>`)}`;
+    return af("Routing", body);
+  }
+
   /* ------------------------------------------------------------ interim screen for chapters still being skinned */
   const TAP_LABEL = { next: "Continue", hold: "Send HOLD", ack: "Acknowledge", open: "Open", post: "Post", retry: "Retry" };
   function stub(roleKey, o = {}) {
@@ -234,5 +346,5 @@ window.Screens = (function () {
     return frame(roleKey, lx(o.app || "Resolvion", [], "", body, { kind, avatar: r.label[0] }), { device: "laptop", clock: o.clock });
   }
 
-  return { frame, lx, phone, card, btn, toast, pageHead, table, pill, kv, platform, stub, TLOGO, APLOGO, SVG, esc };
+  return { frame, lx, phone, card, btn, toast, pageHead, table, pill, kv, platform, holdDuo, finCall, fabric, stub, TLOGO, APLOGO, SVG, esc };
 })();

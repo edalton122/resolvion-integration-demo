@@ -128,7 +128,7 @@ window.Console = (function () {
     nodeSpec = {};
     const defs = document.createElementNS(NS, "defs");
     defs.innerHTML = `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5d5a5b"/></marker>`;
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4a6f88"/></marker>`;
     svg.appendChild(defs);
     (spec.groups || []).forEach((g) => {
       const r = document.createElementNS(NS, "rect");
@@ -333,6 +333,7 @@ window.Console = (function () {
     box.innerHTML = `<div class="dw-h"><span>DataWeave \u00b7 ${esc(opt.script || "transform")}</span><span class="dw-c">0 / ${rows.length} fields</span></div>
       ${rows.map((r) => `<div class="dw-r"><code class="s">${esc(r[0])}</code><span class="sv">${esc(r[1])}</span><span class="ar">\u2192</span><code class="d">${esc(r[2])}</code><span class="dv">${esc(r[3])}</span></div>`).join("")}`;
     (opt.into || els.extra).appendChild(box);
+    if (!opt.into) showExtra();
     const els2 = box.querySelectorAll(".dw-r"), c = box.querySelector(".dw-c");
     for (let i = 0; i < els2.length; i++) {
       els2[i].classList.add("on");
@@ -343,8 +344,14 @@ window.Console = (function () {
     return box;
   }
 
+  function showExtra() {
+    const p = els.extra;
+    setTimeout(() => p.scrollTo({ top: p.scrollHeight, behavior: "smooth" }), 60);
+  }
+
   function extra(html) {
     els.extra.innerHTML = html || "";
+    els.extra.scrollTop = 0;
     return els.extra;
   }
 

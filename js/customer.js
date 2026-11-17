@@ -30,7 +30,7 @@
       { label: "Resolvion platforms", x: 4, y: 80 + T, w: 140, h: 118 },
       { label: "Agent network + data", x: 4, y: 206 + T, w: 140, h: 118 },
       { label: "Experiences", x: 740, y: 6 + T, w: 252, h: 236 },
-      { label: "MuleSoft Agent Fabric \u00b7 control plane for every agent and model", x: 154, y: 340 + T, w: 838, h: 104 },
+      { label: "MuleSoft Agent Fabric \u00b7 control plane for every agent and model", x: 154, y: 340 + T, w: 838, h: 108 },
     ],
     lanes: [
       { label: "System APIs", kind: "sys", x: 154, y: 6 + T, w: 156, h: 318 },
@@ -60,10 +60,10 @@
       n("agentapp", "Agent app + portal", "phone \u00b7 RDN \u00b7 scorecard", C5[0], 82, C5[1], 40, "src"),
       n("fin", "Fin", "voice + chat \u00b7 data connectors", C5[0], 134, C5[1], 40, "src"),
       n("agents", "Resolvion agents", "your orchestrator \u00b7 case + order", C5[0], 186, C5[1], 40, "src"),
-      n("reg", "Agent registry", "orchestrator \u00b7 case \u00b7 order \u00b7 notes", C2[0], 374, C2[1], 46, "ops"),
-      n("fabric", "Model Proxy + policy", "routing \u00b7 Model Wallet \u00b7 FinOps", C3[0], 374, C3[1], 46, "ops"),
-      n("onprem", "On-site model", "GPU \u00b7 PII stays on-site", C4[0], 374, C4[1], 46, "store"),
-      n("ext", "Claude \u00b7 OpenAI", "enterprise \u00b7 masked by policy", C5[0], 374, C5[1], 46, "src"),
+      n("reg", "Agent registry", "orchestrator \u00b7 case \u00b7 order \u00b7 notes", C2[0], 390, C2[1], 46, "ops"),
+      n("fabric", "Model Proxy + policy", "routing \u00b7 Model Wallet \u00b7 FinOps", C3[0], 390, C3[1], 46, "ops"),
+      n("onprem", "On-site model", "GPU \u00b7 PII stays on-site", C4[0], 390, C4[1], 46, "store"),
+      n("ext", "Claude \u00b7 OpenAI", "enterprise \u00b7 masked by policy", C5[0], 390, C5[1], 46, "src"),
     ],
     edges: [
       ["lender", "s-intake"], ["azure", "s-azure"], ["rdn", "s-rdn"], ["data", "s-data"],

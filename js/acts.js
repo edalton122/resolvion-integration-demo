@@ -27,7 +27,8 @@ window.Acts = (function () {
     x.left(o.left(o.beats[0].tap));
     C.graph(C.baseGraph(o.graph || {})); C.tab("flow");
     if (o.clock) C.setClock(o.clock);
-    if (o.ambient) C.ambient(x.t, o.ambient, { every: 700 });
+    if (o.ambient) C.ambient(x.t, o.ambient, { every: 900 });
+    if (o.setup) await o.setup(x);
     if (o.intro) await N(o.intro[0], o.intro[1]);
     for (let i = 0; i < o.beats.length; i++) {
       const b = o.beats[i];
@@ -38,10 +39,23 @@ window.Acts = (function () {
       if (b.tag) C.tag(b.tag[0], b.tag[1], b.tag[2] || "ok", { stay: !!b.stay });
       if (b.log) await C.log(b.log, x.t);
       await N(b.eng, b.exec);
+      if (b.after) await b.after(x);
     }
     if (o.clockStrip) C.clock(o.clockStrip);
     C.caption(o.done || o.beats[o.beats.length - 1].exec);
   }
+
+  /* Console cards: a vertical chain (lineage) and a flat list. rows: [label, value, side note]. */
+  const linCard = (title, rows, note) => `<div class="lin"><div class="lin-h">${title}</div>
+    <div class="lin-flow">${rows.map((r, i) => `<div class="lin-cell"><div class="lin-k">${r[0]}</div><div class="lin-v">${r[1]}</div><div class="lin-s">${r[2] || ""}</div></div>${i < rows.length - 1 ? '<div class="lin-arrow h">\u2192</div>' : ""}`).join("")}</div>
+    ${note ? `<div class="lin-row note"><div class="lin-k">${note[0]}</div><div class="lin-v">${note[1]}</div><div class="lin-s">${note[2] || ""}</div></div>` : ""}</div>`;
+  const listCard = (title, rows) => `<div class="lin list"><div class="lin-h">${title}</div>
+    ${rows.map((r) => `<div class="lin-row ${r[3] || ""}"><div class="lin-k">${r[0]}</div><div class="lin-v">${r[1]}</div><div class="lin-s">${r[2] || ""}</div></div>`).join("")}</div>`;
+  const HOLD_ROWS = [
+    ["10:42:07", "Lender issues HOLD \u00b7 HLD \u2192 canonical HOLD", "client-intake-sapi"],
+    ["10:42:08", "Persisted on the hold-events queue", "Anypoint MQ \u00b7 never lost"],
+    ["10:42:11", "Pushed to Coastal Recovery\u2019s phone", "hold-close-papi \u2192 agent-portal-eapi"],
+  ];
 
   /* ================================================================ steps */
   const steps = [
@@ -58,11 +72,48 @@ window.Acts = (function () {
         await sketch(x, {
           clock: "16:14:02",
           left: (tap, i = 0) => S.platform({ view: "intake", stage: i, tap }),
+          ambient: [["lender", "s-intake", "p-intake"], ["rdn", "s-rdn", "p-events"], ["azure", "s-azure", "p-sync"]],
           intro: ["client-intake-sapi \u00b7 POST /assignments \u00b7 lender LAF-2207 \u00b7 channel system-to-system", "A new assignment arrives from Lakeshore Auto Finance"],
           beats: [
-            { tap: "open", cap: "A new assignment just landed in the intake queue. Click it to open the lender\u2019s raw note.", path: ["lender", "s-intake", "p-intake"], tag: ["s-intake", "202 Accepted \u00b7 41 ms"], eng: "client-intake-sapi \u00b7 202 Accepted \u00b7 lender format LAF-v3 (1 of dozens, illustrative) \u00b7 handed to notes-normalize-papi", exec: "MuleSoft accepts the assignment in the lender\u2019s own format" },
-            { tap: "normalize", cap: "The note holds borrower identifiers. Click Normalize: policy sends it to the on-site model, never to a cloud model.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site \u00b7 0 cloud calls", "new", true], eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 route \u2192 on-site model \u00b7 tokens 812 \u00b7 6 fields extracted", exec: "The note is normalized on Resolvion\u2019s own hardware" },
-            { tap: "write", cap: "Click Create assignment. One canonical record, in the new platform and the legacy ERP.", path: ["p-intake", "p-sync", "s-azure", "azure"], tag: ["azure", "INSERT \u00b7 1 assignment"], eng: "assignment-sync-papi \u00b7 canonical Assignment v1 \u00b7 azure-platform-sapi INSERT \u00b7 \u2192 legacy-erp-sapi", exec: "Written once, then carried into the legacy ERP" },
+            {
+              tap: "open", cap: "A new assignment just landed in the intake queue. Click it to open the lender\u2019s raw note.", path: ["lender", "s-intake", "p-intake"], tag: ["s-intake", "202 Accepted \u00b7 41 ms"],
+              eng: "client-intake-sapi \u00b7 202 Accepted \u00b7 lender format LAF-v3 (1 of dozens, illustrative) \u00b7 handed to notes-normalize-papi", exec: "MuleSoft accepts the assignment in the lender\u2019s own format",
+              after: async () => C.payload({
+                left: { title: "Lender payload \u00b7 LAF-v3 (raw)", obj: { lender: "LAF-2207", channel: "system-to-system", assign_type: "INVOL REPO", vin: D.vehicle.vin, note: "ACCT \u2022\u2022-\u2022\u2022\u2022\u2022-882 / ... BWR ADV VEH MAY BE AT EMPLOYER LOT ..." }, hl: ["note"] },
+                right: { title: "Canonical Assignment v1", obj: D.canonical, hl: ["contact_restriction", "hold_condition", "escalation"] },
+                map: [["assign_type INVOL REPO", "type", "lender code \u2192 canonical"], ["note (free text)", "6 structured fields", "on-site model, by policy"], ["ACCT number", "borrower.account: tokenized", "PII never stored in clear"]],
+              }),
+            },
+            {
+              tap: "normalize", cap: "The note holds borrower identifiers. Click Normalize: policy sends it to the on-site model, never to a cloud model.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site \u00b7 0 cloud calls", "new", true],
+              eng: "agent-fabric \u00b7 policy pii.lender-notes \u00b7 route \u2192 on-site model \u00b7 tokens 812 \u00b7 6 fields extracted", exec: "The note is normalized on Resolvion\u2019s own hardware",
+              after: async (x) => {
+                C.caption("The on-site model\u2019s output is mapped field by field into the canonical assignment.");
+                await C.transform([
+                  ["CLR", "GRY", "collateral.color", "GRAY"],
+                  ["LAST SEEN", "EMPLOYER LOT - RIVERSIDE 11/12", "location_hints", "employer lot \u00b7 Riverside"],
+                  ["DO NOT CONTACT", "AT WORK PER BWR REQ 10/30", "contact_restriction", "NO_CONTACT_WORK"],
+                  ["PP", "CHILD SEAT REPORTED", "personal_property_flag", "true"],
+                  ["HOLD IF", "PMT POSTS \u00b7 CK BEFORE PICKUP", "hold_condition", "PAYMENT_POSTS"],
+                  ["CALL CR MGR", "B4 IMPOUND REL", "escalation", "CREDIT_MGR_BEFORE_RELEASE"],
+                  ["ACCT", "55-0193-882", "borrower.account", "tokenized"],
+                ], x.t, { script: "notes-normalize-papi \u00b7 lender note \u2192 Assignment", pace: 220 });
+              },
+            },
+            {
+              tap: "write", cap: "Click Create assignment. One canonical record, in the new platform and the legacy ERP.", path: ["p-intake", "p-sync", "s-azure", "azure"], tag: ["azure", "INSERT \u00b7 1 assignment"],
+              eng: "assignment-sync-papi \u00b7 canonical Assignment v1 \u00b7 azure-platform-sapi INSERT \u00b7 \u2192 legacy-erp-sapi", exec: "Written once, then carried into the legacy ERP",
+              after: async (x) => {
+                await C.packet(["p-sync", "s-legacy", "legacy"], x.t);
+                C.tag("p-sync", "\u2192 legacy ERP \u00b7 INSERT", "ok");
+                C.extra(linCard(`Lineage \u00b7 ${A.id}`, [
+                  ["Lender", "Lakeshore Auto Finance \u00b7 system-to-system", "client-intake-sapi"],
+                  ["Normalized", "6 fields from the free-text note", "on-site model \u00b7 policy pii.lender-notes"],
+                  ["Mapped", "Canonical Assignment v1", "notes-normalize-papi \u00b7 DataWeave"],
+                  ["Written", "New platform (Azure SQL) \u2192 legacy ERP (SQL Server)", "assignment-sync-papi"],
+                ]));
+              },
+            },
           ],
           clockStrip: [{ l: "Placed to record", v: "1.9 s", state: "ok" }, { l: "PII sent to cloud", v: "0", state: "ok" }, { l: "Systems updated", v: "2", s: "Azure \u2192 legacy ERP" }, { l: "Lender formats", v: "1 map each" }],
           done: "One canonical assignment, in both platforms, in under two seconds.",
@@ -113,8 +164,31 @@ window.Acts = (function () {
           clock: "17:30:00",
           left: (tap, i = 0) => S.platform({ view: "billing", stage: i, tap }),
           beats: [
-            { tap: "post", cap: "Click Post fee line in the new platform.", path: ["azure", "s-azure", "p-sync"], tag: ["s-azure", "fee_line.created"], eng: "azure-platform-sapi \u00b7 event fee_line.created \u00b7 REC-FEE \u00b7 assignment RSV-26-0479915", exec: "The new platform posts a recovery fee" },
-            { tap: "sync", cap: "Click Sync to see it land on the client invoice in the legacy ERP.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", `invoice line \u00b7 ${D.invoice.id}`], eng: `assignment-sync-papi \u00b7 map FeeLine \u2192 client invoice line \u00b7 legacy-erp-sapi INSERT ${D.invoice.id} \u00b7 2.3 s end to end`, exec: "The same line appears on the client invoice in the legacy ERP" },
+            {
+              tap: "post", cap: "Click Post fee line in the new platform.", path: ["azure", "s-azure", "p-sync"], tag: ["s-azure", "fee_line.created"],
+              eng: "azure-platform-sapi \u00b7 event fee_line.created \u00b7 REC-FEE \u00b7 assignment RSV-26-0479915", exec: "The new platform posts a recovery fee",
+              after: async (x) => {
+                C.caption("assignment-sync-papi maps the Azure fee line onto the legacy ERP\u2019s client invoice line.");
+                await C.transform([
+                  ["fee_line.code", "REC-FEE", "INV_LINE.CHARGE_CD", "RECFEE"],
+                  ["fee_line.assignment_id", "RSV-26-0479915", "INV_LINE.FILE_NO", "0479915"],
+                  ["fee_line.lender_id", "LAF-2207", "INV_HDR.CLIENT_NO", "2207"],
+                  ["fee_line.posted_at", "2026-11-17T17:30:00Z", "INV_LINE.POST_DT", "11/17/2026 09:30"],
+                  ["fee_line.amount", "\u2022\u2022\u2022.\u2022\u2022", "INV_LINE.AMT", "\u2022\u2022\u2022.\u2022\u2022"],
+                ], x.t, { script: "assignment-sync-papi \u00b7 FeeLine \u2192 client invoice line", pace: 200 });
+              },
+            },
+            {
+              tap: "sync", cap: "Click Sync to see it land on the client invoice in the legacy ERP.", path: ["p-sync", "s-legacy", "legacy"], tag: ["p-sync", `\u2192 ${D.invoice.id} \u00b7 line 14`],
+              eng: `assignment-sync-papi \u00b7 legacy-erp-sapi INSERT INV_LINE \u00b7 ${D.invoice.id} line 14 \u00b7 2.3 s end to end`, exec: "The same line appears on the client invoice in the legacy ERP",
+              after: async () => {
+                C.extra(linCard("Lineage \u00b7 one fee line, Azure to the client invoice", [
+                  ["New platform", "fee_line REC-FEE \u00b7 RSV-26-0479915", "Azure SQL"],
+                  ["Moved by", "assignment-sync-papi \u00b7 one way", "monitored \u00b7 retried on failure"],
+                  ["Legacy ERP", `${D.invoice.id} \u00b7 line 14`, "SQL Server \u00b7 accounting"],
+                ], ["Next on the same APIs", D.invoice.next.join(" \u00b7 "), "same assignment-sync APIs"]));
+              },
+            },
           ],
           clockStrip: [{ l: "Azure \u2192 ERP", v: "2.3 s", state: "ok" }, { l: "Lines synced today", n: 1842, v: "{n}", s: "illustrative" }, { l: "Direction", v: "Azure \u2192 legacy" }, { l: "Code to throw away", v: "none" }],
         });
@@ -130,9 +204,37 @@ window.Acts = (function () {
           clock: "17:31:10",
           left: (tap, i = 0) => S.platform({ view: "quarantine", stage: i, tap }),
           beats: [
-            { tap: "post", cap: "Click Post on the next fee line.", path: ["azure", "s-azure", "p-sync"], err: true, tag: ["p-sync", "DQ-021 missing lender_ref", "err", true], eng: "assignment-sync-papi \u00b7 validation FAILED \u00b7 DQ-021 lender_ref required \u00b7 \u2192 quarantine (not posted)", exec: "Held back with a reason, not posted half-finished" },
-            { tap: "retry", cap: "The lender reference is added. Click Retry.", path: ["p-sync", "s-legacy", "legacy"], tag: ["legacy", "retry \u2713 posted"], eng: "assignment-sync-papi \u00b7 quarantine replay \u00b7 DQ-021 resolved \u00b7 legacy-erp-sapi INSERT \u00b7 OK", exec: "Fixed once, retried automatically, posted" },
+            {
+              tap: "post", cap: "Click Post on the next fee line.", path: ["azure", "s-azure", "p-sync"], err: true, tag: ["p-sync", "DQ-021 missing lender_ref", "err", true],
+              eng: "assignment-sync-papi \u00b7 validation FAILED \u00b7 DQ-021 lender_ref required \u00b7 \u2192 quarantine (not posted)", exec: "Held back with a reason, not posted half-finished",
+              after: async (x) => {
+                C.node("legacy", "dim");
+                C.extra(listCard("Quarantine \u00b7 held, not dropped", [
+                  ["Record", "fee_line REC-FEE \u00b7 RSV-26-0480102", "from Azure"],
+                  ["Reason", "DQ-021 \u00b7 lender_ref is required for the client invoice", "rule in assignment-sync-papi", "err"],
+                  ["Posted to ERP", "No \u00b7 nothing half-finished", "accounting stays clean"],
+                  ["Owner", "Billing operations \u00b7 alerted", "Anypoint Monitoring"],
+                ]));
+                await C.log([
+                  { lvl: "warn", raw: "assignment-sync-papi validate fee_line RSV-26-0480102 \u2192 DQ-021 lender_ref null", exec: "Validation caught a missing lender reference" },
+                  { lvl: "info", raw: "quarantine.fee_line INSERT reason=DQ-021 retry=on-change", exec: "Held in quarantine with its reason" },
+                ], x.t);
+              },
+            },
+            {
+              tap: "retry", cap: "The lender reference is added. Click Retry.", path: ["p-sync", "s-legacy", "legacy"], tag: ["p-sync", "retry \u2713 posted"],
+              eng: "assignment-sync-papi \u00b7 quarantine replay \u00b7 DQ-021 resolved \u00b7 legacy-erp-sapi INSERT \u00b7 OK", exec: "Fixed once, retried automatically, posted",
+              after: async () => {
+                C.node("p-sync", "ok");
+                C.extra(listCard("Quarantine \u00b7 resolved", [
+                  ["Record", "fee_line REC-FEE \u00b7 RSV-26-0480102", "from Azure"],
+                  ["Reason", "DQ-021 resolved \u00b7 lender_ref added", "replayed automatically", "ok"],
+                  ["Posted to ERP", `Yes \u00b7 ${D.invoice.id}`, "no record lost"],
+                ]));
+              },
+            },
           ],
+          clockStrip: [{ l: "Half-records posted", v: "0", state: "ok" }, { l: "Held with a reason", v: "1" }, { l: "Retried", v: "automatically", state: "ok" }, { l: "Lost", v: "0", state: "ok" }],
         });
       },
     },
@@ -177,10 +279,23 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "18:42:07",
-          left: (tap, i = 0) => S.stub("agent", { app: "Agent app", title: i >= 1 ? "HOLD \u2014 do not recover" : `Case ${A.id} \u00b7 located`, lines: i >= 1 ? ["Lakeshore Auto Finance \u00b7 payment posted", "Received 10:42:07 \u00b7 delivered 10:42:11", i >= 2 ? "Acknowledged 10:42:19 \u00b7 on record" : "Tap to acknowledge"] : ["2022 Honda Accord EX \u00b7 Gray", "Last LPR hit: Riverside, CA \u00b7 6:02 AM", "Do not contact at work"], tap, step: i, alert: i >= 1 }),
+          left: (tap, i = 0) => S.holdDuo({ stage: i, tap }),
+          setup: async () => C.extra(linCard("Hold timeline \u00b7 waiting for the lender", [["Case", `${A.id} \u00b7 located Wed 6:02 AM`, "Coastal Recovery \u00b7 en route"]])),
           beats: [
-            { tap: "hold", cap: "The lender sends a HOLD. Click it to send it down the queue.", path: ["lender", "s-intake", "p-intake", "p-sync", "p-events", "e-agent", "agentapp"], tag: ["agentapp", "HOLD delivered \u00b7 4 s", "new", true], eng: "hold-close-papi \u00b7 lender HLD \u2192 HOLD \u00b7 anypoint-mq hold-events \u00b7 push agent AG-0612 \u00b7 10:42:07 \u2192 10:42:11", exec: "The hold reaches the agent\u2019s phone in 4 seconds" },
-            { tap: "ack", cap: "Coastal Recovery acknowledges. Click Acknowledge.", path: ["agentapp", "e-agent", "p-events"], tag: ["p-events", "ACK 10:42:19 \u00b7 audited"], eng: "hold-close-papi \u00b7 ack AG-0612 10:42:19 \u00b7 audit hold.delivered + hold.acknowledged", exec: "Acknowledged and on the record: wrongful repossession prevented" },
+            {
+              tap: "hold", cap: "The borrower\u2019s payment posted. On the right, click Issue HOLD in the lender\u2019s system.", path: ["lender", "s-intake", "p-intake", "p-sync", "p-events", "e-agent", "agentapp"], tag: ["agentapp", "HOLD delivered \u00b7 4 s", "new", true],
+              eng: "hold-close-papi \u00b7 lender HLD \u2192 HOLD \u00b7 anypoint-mq hold-events \u00b7 push agent AG-0612 \u00b7 10:42:07 \u2192 10:42:11", exec: "The hold reaches the agent\u2019s phone in 4 seconds",
+              after: async () => C.extra(linCard("Hold timeline \u00b7 lender to truck", HOLD_ROWS)),
+            },
+            {
+              tap: "ack", cap: "The hold is on Coastal Recovery\u2019s phone. Click Acknowledge.", path: ["agentapp", "e-agent", "p-events"], tag: ["p-events", "ACK 10:42:19 \u00b7 audited"],
+              eng: "hold-close-papi \u00b7 ack AG-0612 10:42:19 \u00b7 audit hold.delivered + hold.acknowledged", exec: "Acknowledged and on the record: wrongful repossession prevented",
+              after: async (x) => {
+                C.extra(linCard("Hold timeline \u00b7 lender to truck", HOLD_ROWS.concat([["10:42:19", "Acknowledged by the agent", "audit trail \u00b7 every step timestamped"]]), ["Status to lender", "HOLD acknowledged \u00b7 Lakeshore sees it", "client-status-eapi"]));
+                await C.packet(["p-events", "p-sync", "e-status", "lenders"], x.t);
+                C.node("lenders", "ok");
+              },
+            },
           ],
           clockStrip: [{ l: "Lender to truck", v: "4 s", state: "ok" }, { l: "Acknowledged", v: "12 s" }, { l: "Holds lost", v: "0", state: "ok" }, { l: "Audit", v: "every step timestamped" }],
         });
@@ -244,11 +359,38 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "16:05:00",
-          left: (tap, i = 0) => S.stub("borrower", { app: "Fin \u00b7 voice", title: "\u201cMy car was repossessed. Where is it?\u201d", lines: ["ID verified (last 4 + ZIP)", "Vehicle at Oceanside lot \u00b7 open 8 AM\u20135 PM", "Pickup scheduled: Thu 9\u201311 AM \u00b7 disclosure read"], tap, step: i }),
+          left: (tap, i = 0) => S.finCall({ stage: i, tap }),
+          setup: async () => C.extra(listCard("Fin \u00b7 alongside Agent Fabric, calling MuleSoft APIs", [
+            ["Channel", "Voice \u00b7 \u201cIf your car was repossessed\u201d line", "phone system: generic"],
+            ["How Fin calls", "Data connectors (HTTP, configured in JSON) inside a Procedure", "no new point-to-point code"],
+            ["API", "borrower-service-eapi \u00b7 OAuth 2.0 \u00b7 PII masked in logs", "Omni Gateway"],
+          ])),
           beats: [
-            { tap: "next", cap: "Click to let Fin look up the vehicle.", path: ["fin", "e-borrower", "p-sync", "s-azure", "azure"], tag: ["e-borrower", "GET /vehicle-status \u00b7 masked"], eng: "fin data connector get_vehicle_status \u2192 borrower-service-eapi \u00b7 GET /assignments/{id}/vehicle-status \u00b7 identity verified \u00b7 PII masked in logs", exec: "Fin gets live recovery data through a governed API" },
-            { tap: "next", cap: "Click to schedule the personal-property pickup.", path: ["fin", "e-borrower", "p-sync"], tag: ["p-sync", "pickup booked"], eng: "fin data connector book_property_pickup \u2192 borrower-service-eapi \u00b7 POST /property-pickups \u00b7 child seat \u00b7 Thu 09:00\u201311:00 \u00b7 Oceanside lot", exec: "Pickup booked, disclosure read, call resolved" },
+            {
+              tap: "next", cap: "The caller is verified. On the right, run the Procedure\u2019s get_vehicle_status step.", path: ["fin", "e-borrower", "p-sync", "s-azure", "azure"], tag: ["e-borrower", "GET /vehicle-status \u00b7 masked"],
+              eng: "fin data connector get_vehicle_status \u2192 borrower-service-eapi \u00b7 GET /assignments/{id}/vehicle-status \u00b7 identity verified \u00b7 PII masked in logs", exec: "Fin gets live recovery data through a governed API",
+              after: async (x) => {
+                await C.packet(["azure", "s-azure", "p-sync", "e-borrower", "fin"], x.t, { dur: 380 });
+                C.tag("fin", "200 OK \u00b7 186 ms", "ok");
+                C.payload({
+                  left: { title: "Fin data connector \u00b7 request", obj: { connector: "get_vehicle_status", method: "GET", url: "https://api.resolvion.example/borrower/v1/assignments/{assignment_id}/vehicle-status", auth: "OAuth 2.0 client credentials", verified_by: "last4 + zip" }, hl: ["url"] },
+                  right: { title: "borrower-service-eapi \u00b7 response", obj: { status: "IN_STORAGE", lot: "Oceanside lot", hours: "Mon\u2013Fri 8 AM\u20135 PM", personal_property: ["Child seat"], borrower: "masked", vin: D.vehicle.vinMasked }, hl: ["status", "lot", "personal_property"] },
+                  mapTitle: "What Fin is allowed to see",
+                  map: [["vehicle status + lot", "returned", "needed for the answer"], ["personal property", "returned", "from the lender\u2019s note"], ["account, address, VIN", "masked", "never reach Fin or the logs"]],
+                });
+              },
+            },
+            {
+              tap: "next", cap: "The caller wants the child seat back. Run book_property_pickup.", path: ["fin", "e-borrower", "p-sync", "s-azure", "azure"], tag: ["p-sync", "pickup booked \u00b7 Thu 9\u201311"],
+              eng: "fin data connector book_property_pickup \u2192 borrower-service-eapi \u00b7 POST /property-pickups \u00b7 child seat \u00b7 Thu 09:00\u201311:00 \u00b7 Oceanside lot", exec: "Pickup booked, disclosure read, call resolved",
+              after: async () => C.extra(listCard("Call outcome", [
+                ["Resolved", "By Fin \u00b7 no handoff \u00b7 2:41", "76% average resolution rate across Fin customers", "ok"],
+                ["Booked", `Personal-property pickup \u00b7 ${D.pickup.window}`, "written to the new platform"],
+                ["Compliance", "ID verified first \u00b7 disclosure read \u00b7 PII masked", "illustrative script"],
+              ])),
+            },
           ],
+          clockStrip: [{ l: "Answered", v: "24/7", state: "ok" }, { l: "Handoffs", v: "0" }, { l: "PII in logs", v: "0", state: "ok" }, { l: "New integrations", v: "0", s: "same MuleSoft API" }],
         });
       },
     },
@@ -292,11 +434,35 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "18:00:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: `Registry \u00b7 ${D.fabric.agents.length} agents \u00b7 ${D.fabric.models.length} models`, lines: ["Contains borrower PII \u2192 on-site model", "Code task \u2192 Claude", "General summarization, no PII \u2192 cheapest capable model"], tap, step: i }),
+          left: (tap, i = 0) => S.fabric({ view: "routing", stage: i, tap }),
+          ambient: [["reg", "fabric", "onprem"], ["reg", "fabric", "ext"]],
           beats: [
-            { tap: "next", cap: "Click a request with borrower PII.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site"], eng: "model-proxy \u00b7 case-evaluation-agent \u00b7 PII detected \u2192 on-site model", exec: "Sensitive work stays on-site" },
-            { tap: "next", cap: "Click a general summarization request.", path: ["reg", "fabric", "ext"], tag: ["ext", "\u2192 cheapest capable"], eng: "model-proxy \u00b7 order-evaluation-agent summary \u00b7 no PII \u00b7 route \u2192 lowest-cost capable model", exec: "Everything else goes to the cheapest model that can do it" },
+            {
+              tap: "next", cap: "The Case Evaluation Agent sends lender notes. Click Route on that request.", path: ["reg", "fabric", "onprem"], tag: ["onprem", "PII \u2192 on-site"],
+              eng: "model-proxy \u00b7 case-evaluation-agent \u00b7 PII detected \u2192 on-site model", exec: "Sensitive work stays on-site",
+              after: async () => C.extra(listCard("Routing decisions \u00b7 on the audit trail", [
+                ["Case Evaluation Agent", "\u2192 On-site model", "rule: contains borrower PII", "ok"],
+              ])),
+            },
+            {
+              tap: "next", cap: "Now a general summary with no PII. Click Route.", path: ["reg", "fabric", "ext"], tag: ["ext", "\u2192 cheapest capable"],
+              eng: "model-proxy \u00b7 order-evaluation-agent summary \u00b7 no PII \u00b7 route \u2192 lowest-cost capable model", exec: "Everything else goes to the cheapest model that can do it",
+              after: async (x) => {
+                C.caption("A coding agent\u2019s request comes in next. No click needed: the policy routes it to Claude.");
+                await x.sleep(500);
+                await C.packet(["reg", "fabric", "ext"], x.t);
+                C.tag("ext", "code \u2192 Claude", "new");
+                C.log([{ lvl: "info", raw: "model-proxy \u00b7 coding-agent \u00b7 task=code \u2192 claude \u00b7 policy route.code", exec: "Code tasks go to Claude automatically" }], x.t);
+                C.extra(listCard("Routing decisions \u00b7 on the audit trail", [
+                  ["Case Evaluation Agent", "\u2192 On-site model", "rule: contains borrower PII", "ok"],
+                  ["Order Evaluation Agent", "\u2192 OpenAI (enterprise)", "rule: no PII \u00b7 lowest-cost capable"],
+                  ["Coding agent", "\u2192 Claude", "rule: code task \u00b7 routed automatically"],
+                ]));
+              },
+            },
           ],
+          done: "Three requests, three models, one policy. Nothing in the orchestrator was replaced.",
+          clockStrip: [{ l: "Requests routed today", n: 48210, v: "{n}", s: "illustrative" }, { l: "PII to cloud", v: "0", state: "ok" }, { l: "Agents replaced", v: "0" }, { l: "Audit", v: "every decision" }],
         });
       },
     },
@@ -308,11 +474,25 @@ window.Acts = (function () {
       async run(x) {
         await sketch(x, {
           clock: "18:05:00",
-          left: (tap, i = 0) => S.stub("cto", { app: "Agent Fabric", title: "FinOps \u00b7 token spend today (illustrative)", lines: ["On-site model 58% of tokens \u00b7 no marginal cost", "OpenAI 28% \u00b7 Claude 14%", `${D.fabric.wallet.agent}: ${D.fabric.wallet.used}% of Model Wallet budget \u00b7 capped at 100%`], tap, step: i, alert: i >= 2 }),
+          left: (tap, i = 0) => S.fabric({ view: "finops", stage: i, tap }),
           beats: [
-            { tap: "next", cap: "Click the spend view.", path: ["reg", "fabric"], tag: ["fabric", "70.6M tokens today"], eng: "finops \u00b7 spend by agent \u00d7 model \u00b7 70.6M tokens \u00b7 58% on-site", exec: "One spend view across every model" },
-            { tap: "next", cap: "Click the Order Evaluation agent\u2019s wallet.", path: ["fabric", "ext"], tag: ["fabric", `wallet ${D.fabric.wallet.used}% \u00b7 cap 100%`, "warn", true], eng: `model-wallet \u00b7 order-evaluation-agent \u00b7 ${D.fabric.wallet.used}% of daily budget \u00b7 hard cap at 100%`, exec: "Budgets are enforced, not just reported" },
+            {
+              tap: "next", cap: "Click Open today\u2019s spend.", path: ["reg", "fabric"], tag: ["fabric", "70.6M tokens today"],
+              eng: "finops \u00b7 spend by agent \u00d7 model \u00b7 70.6M tokens \u00b7 58% on-site", exec: "One spend view across every model",
+              after: async () => C.extra(listCard("Spend \u00b7 today, by model (illustrative)", D.fabric.spend.map((s) => [s.model, `${s.tokens} tokens \u00b7 ${s.share}%`, /on-site/i.test(s.model) ? "no marginal cost" : "metered"]))),
+            },
+            {
+              tap: "next", cap: "One agent is close to its budget. Click the Order Evaluation Agent\u2019s wallet.", path: ["fabric", "ext"], tag: ["fabric", `wallet ${D.fabric.wallet.used}% \u00b7 cap 100%`, "warn", true],
+              eng: `model-wallet \u00b7 order-evaluation-agent \u00b7 ${D.fabric.wallet.used}% of daily budget \u00b7 hard cap at 100%`, exec: "Budgets are enforced, not just reported",
+              after: async () => C.extra(listCard(`Model Wallet \u00b7 ${D.fabric.wallet.agent}`, [
+                ["Used today", `${D.fabric.wallet.used}% of the daily budget`, "illustrative", "warn"],
+                ["Cap", "100% \u00b7 hard", "enforced by Model Proxy"],
+                ["At the cap", "Requests held, not overrun", "owner can raise it"],
+              ])),
+            },
           ],
+          done: "Spend by agent and model in one view, and a hard cap on every agent\u2019s budget.",
+          clockStrip: [{ l: "Tokens today", v: "70.6M", s: "illustrative" }, { l: "On-site share", v: "58%", state: "ok" }, { l: "Budget overruns", v: "0", state: "ok" }, { l: "Wallets", v: "per agent" }],
         });
       },
     },
