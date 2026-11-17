@@ -1,0 +1,7 @@
+.DS_Store
+storyboard.md
+
+# Presenter build and working notes stay local; the public site is index.html only.
+internal.html
+js/notes.js
+docs/
