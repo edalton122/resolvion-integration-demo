@@ -24,6 +24,7 @@
     <header class="top">
       <a class="top-logo" data-go="hero" title="Back to start"><img src="${B.logo}" alt="${esc(B.name)}"/></a>
       <div class="top-title"><b>${esc(B.topTitle)}</b><span>${esc(B.topSub)}</span></div>
+      <button class="top-intro" id="btnIntro" type="button" title="Back up to the intro video"><i><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Intro</button>
       <nav class="stepper" id="stepper"></nav>
     </header>
     <section class="talk" id="talk"></section>
@@ -37,6 +38,7 @@
 
   const $ = (id) => document.getElementById(id);
   const left = $("left"), talk = $("talk"), stage = $("stage"), page = $("page");
+  $("btnIntro").addEventListener("click", () => { if (window.Intro) window.Intro.up(); });
   C.init($("right"));
   if (/[?&]exec\b/.test(location.search)) { const d = document.querySelector('.cx-depth [data-depth="exec"]'); if (d) d.click(); }
 
@@ -418,6 +420,7 @@
   });
 
   document.addEventListener("keydown", (e) => {
+    if (document.body.dataset.floor === "up") return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.matches("input, textarea")) return;
     if (vig) {

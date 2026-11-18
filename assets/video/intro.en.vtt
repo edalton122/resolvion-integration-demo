@@ -1,0 +1,231 @@
+WEBVTT
+
+1
+00:00:01.000 --> 00:00:04.850
+Welcome. You're on a demo site
+Salesforce built for Resolvion.
+
+2
+00:00:04.910 --> 00:00:08.630
+In the next few minutes, you'll see
+why we built it, and how to use it.
+
+3
+00:00:08.690 --> 00:00:13.570
+Every screen follows one assignment,
+from lender to close, using sample data.
+
+4
+00:00:14.450 --> 00:00:18.630
+Every month, more than 50,000
+new assignments reach Resolvion.
+
+5
+00:00:18.690 --> 00:00:21.280
+Over 10,000 vehicles are recovered.
+
+6
+00:00:21.340 --> 00:00:25.300
+More than 600 contracted recovery
+agents work in the field.
+
+7
+00:00:25.360 --> 00:00:28.350
+And dozens of lenders each
+bring their own rules.
+
+8
+00:00:29.950 --> 00:00:32.540
+Your team has been clear
+about where things stand.
+
+9
+00:00:32.600 --> 00:00:37.970
+A new platform on Azure is going live while
+the legacy ERP still runs accounting.
+
+10
+00:00:38.030 --> 00:00:43.420
+Lender notes arrive in every format, and
+your on-site model has to decipher each one.
+
+11
+00:00:43.480 --> 00:00:45.283
+AI is already working for you,
+
+12
+00:00:45.333 --> 00:00:50.390
+but the spend is climbing across three
+model providers, with no traffic cop.
+
+13
+00:00:50.450 --> 00:00:52.870
+And borrower data can't leave your hands.
+
+14
+00:00:54.470 --> 00:00:57.680
+The next connection shouldn't
+be another custom project.
+
+15
+00:00:57.740 --> 00:01:00.960
+Here's how Salesforce would
+approach it, in three layers.
+
+16
+00:01:02.470 --> 00:01:03.790
+First, connect.
+
+17
+00:01:03.850 --> 00:01:08.816
+MuleSoft builds one governed bridge from
+the new platform to the legacy ERP,
+
+18
+00:01:08.866 --> 00:01:12.730
+accounting first, and reuses
+it when the ERP retires.
+
+19
+00:01:12.790 --> 00:01:18.700
+Every API is MCP-ready, so your production
+agents use the same governed connections.
+
+20
+00:01:19.500 --> 00:01:20.880
+Second, govern.
+
+21
+00:01:20.940 --> 00:01:25.860
+Agent Fabric sits across the orchestrator,
+agents and models you already run.
+
+22
+00:01:25.920 --> 00:01:27.520
+Nothing is replaced.
+
+23
+00:01:27.580 --> 00:01:30.510
+It routes each request to
+the right model by policy,
+
+24
+00:01:30.560 --> 00:01:35.730
+keeps borrower data on your on-site model,
+and caps spend with Model Wallet budgets.
+
+25
+00:01:37.330 --> 00:01:38.410
+Third, show.
+
+26
+00:01:38.470 --> 00:01:41.884
+Tableau gives executives
+concise views on governed data,
+
+27
+00:01:41.934 --> 00:01:45.450
+and puts a live scorecard
+inside your agent portal.
+
+28
+00:01:45.510 --> 00:01:49.220
+On the same foundation, Fin can
+take routine borrower calls.
+
+29
+00:01:50.330 --> 00:01:52.260
+You don't have to do it all at once.
+
+30
+00:01:52.320 --> 00:01:55.490
+Phase 1 is the bridge your MVP already needs.
+
+31
+00:01:55.550 --> 00:01:57.340
+Everything else builds on it.
+
+32
+00:01:57.400 --> 00:02:00.730
+On this site, you'll see each
+of these working, step by step.
+
+33
+00:02:05.330 --> 00:02:08.520
+This site is laid out a little
+differently, on purpose.
+
+34
+00:02:08.580 --> 00:02:12.700
+On the left is what your people see:
+the screens they'd use every day.
+
+35
+00:02:12.760 --> 00:02:17.256
+On the right is the part that's usually
+invisible: MuleSoft and Agent Fabric,
+
+36
+00:02:17.306 --> 00:02:19.200
+doing the work underneath.
+
+37
+00:02:19.260 --> 00:02:22.500
+Integration and AI governance
+can feel abstract.
+
+38
+00:02:22.560 --> 00:02:26.449
+Putting both sides together shows
+you exactly where your data flows,
+
+39
+00:02:26.499 --> 00:02:29.290
+and what keeps it governed, at every step.
+
+40
+00:02:29.350 --> 00:02:31.950
+And every stop follows that same assignment.
+
+41
+00:02:33.330 --> 00:02:34.550
+Choose your route.
+
+42
+00:02:34.610 --> 00:02:39.370
+The short path covers the key moments:
+14 stops in about 15 minutes.
+
+43
+00:02:39.430 --> 00:02:45.040
+The full run takes about 30 minutes and adds
+every stop, with deeper technical detail.
+
+44
+00:02:45.690 --> 00:02:48.820
+Click whatever's pulsing
+to move the story forward.
+
+45
+00:02:48.880 --> 00:02:52.400
+Here, a lender's hold reaches
+the agent's phone in seconds.
+
+46
+00:02:52.460 --> 00:02:54.540
+When a step is done, press Next.
+
+47
+00:02:55.840 --> 00:03:00.300
+Here, Agent Fabric routes each request
+to the right model, by policy.
+
+48
+00:03:02.790 --> 00:03:07.890
+And here, each agent sees their own
+scorecard, ranked against anonymized peers.
+
+49
+00:03:10.090 --> 00:03:13.770
+When you're ready, let's map your
+bridge and your agent spend together.
